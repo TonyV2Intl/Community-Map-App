@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>编辑地标 - 社区地图</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        body {
+            font-family: var(--font-sans);
+            font-size: 13px;
+            color: var(--cmap-foreground);
+            background: var(--color-neutral-100);
+        }
+        .edit-main {
+            padding-bottom: calc(80px + env(safe-area-inset-bottom));
+        }
+        .form-card {
+            background: white;
+            margin-bottom: 8px;
+        }
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 0;
+        }
+        .image-preview {
+            width: 100%;
+            height: 120px;
+            background: var(--cmap-muted);
+            border-radius: var(--cmap-radius-md);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .image-preview-placeholder {
+            color: var(--color-neutral-400);
+            font-size: 32px;
+        }
+        textarea.g-field {
+            height: auto;
+            min-height: 100px;
+            padding: 10px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        .icon-preview-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .icon-preview-circle {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            border-radius: 50%;
+            background: var(--cmap-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            transition: background 0.15s;
+        }
+        .icon-preview-label {
+            font-size: 12px;
+            color: var(--cmap-muted-foreground);
+        }
+        .icon-grid {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .color-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .color-custom-wrapper {
+            position: relative;
+            width: 28px;
+            height: 28px;
+            min-width: 28px;
+        }
+        .pos-picker-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(0,0,0,0.32);
+            flex-direction: column;
+        }
+        .pos-picker-overlay.show {
+            display: flex;
+        }
+        .pos-picker-header {
+            background: white;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 44px;
+            border-bottom: 1px solid var(--cmap-border);
+        }
+        .pos-picker-header .spacer {
+            width: 48px;
+        }
+        .pos-picker-title {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--cmap-foreground);
+        }
+        .pos-picker-done {
+            font-size: 14px;
+            color: var(--cmap-primary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0 8px;
+            min-height: 36px;
+            font-weight: 500;
+            font-family: inherit;
+        }
+        .pos-picker-body {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+        .pos-picker-img-wrap {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            cursor: crosshair;
+        }
+        .pos-picker-img-wrap img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            pointer-events: none;
+        }
+        .picker-marker {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 5;
+        }
+        .picker-marker-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--cmap-primary);
+            border: 3px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+        .picker-label {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.72);
+            color: white;
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .pick-btn {
+            height: 36px;
+            border-radius: var(--cmap-radius-md);
+            background: var(--cmap-muted);
+            border: 1px solid var(--cmap-border);
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: inherit;
+            color: var(--cmap-foreground);
+            padding: 0 14px;
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+        .pick-btn:hover {
+            background: var(--color-neutral-300);
+        }
+        .pos-input-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pos-input-group input {
+            width: 60px;
+            height: 36px;
+            font-size: 13px;
+            border: 1px solid var(--cmap-input);
+            border-radius: var(--cmap-radius-md);
+            padding: 0 8px;
+            outline: none;
+            text-align: center;
+            font-family: inherit;
+            color: var(--cmap-foreground);
+        }
+        .pos-input-group input:focus {
+            border-color: var(--cmap-primary);
+        }
+        .pos-input-group span {
+            font-size: 11px;
+            color: var(--color-neutral-500);
+        }
+        .pos-hint {
+            font-size: 11px;
+            color: var(--color-neutral-500);
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+        .header-save-btn {
+            font-size: 14px;
+            color: var(--cmap-primary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0 8px;
+            min-height: 36px;
+            font-weight: 500;
+            font-family: inherit;
+        }
+        .header-save-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <main class="edit-main">
+        <header class="sticky top-0 z-30 bg-white" style="border-bottom: 1px solid var(--cmap-border); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; height: 48px;">
+            <button type="button" aria-label="返回" onclick="goBack()" style="width:32px;height:32px;min-width:32px;border-radius:50%;background:var(--cmap-muted);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                <i class="fa-solid fa-chevron-left" style="font-size: 14px; color: var(--color-neutral-600);"></i>
+            </button>
+            <h1 id="page-title" style="font-size:16px;font-weight:500;color:var(--cmap-foreground);margin:0;">编辑地标</h1>
+            <button type="button" class="header-save-btn" onclick="saveLandmark()">保存</button>
+        </header>
+
+        <div style="padding-top: 8px;">
+            <div class="form-card g-section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="g-label">地标名称</label>
+                        <input class="g-field" type="text" id="landmark-name" placeholder="请输入地标名称" />
+                    </div>
+                    <div class="form-group">
+                        <label class="g-label">地标地址</label>
+                        <input class="g-field" type="text" id="landmark-address" placeholder="请输入地址" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-card g-section">
+                <label class="g-label">选取位置</label>
+                <div class="g-btn-row">
+                    <button type="button" class="pick-btn" onclick="openPositionPicker()">
+                        <i class="fa-solid fa-crosshairs" style="font-size: 13px;"></i>
+                        选取位置
+                    </button>
+                    <div class="pos-input-group">
+                        <input type="number" id="pos-x" value="50" min="0" max="100" step="0.1" oninput="syncPositionFromInput()" />
+                        <span>% X</span>
+                    </div>
+                    <div class="pos-input-group">
+                        <input type="number" id="pos-y" value="50" min="0" max="100" step="0.1" oninput="syncPositionFromInput()" />
+                        <span>% Y</span>
+                    </div>
+                </div>
+                <p class="pos-hint">坐标为图片上的百分比位置 (0-100)</p>
+            </div>
+
+            <div class="form-card g-section">
+                <label class="g-label">图片链接</label>
+                <input class="g-field" type="text" id="landmark-image" placeholder="输入图片URL..." oninput="updateImagePreview()" />
+                <div class="image-preview" id="image-preview">
+                    <i class="fa-regular fa-image image-preview-placeholder"></i>
+                </div>
+            </div>
+
+            <div class="form-card g-section">
+                <label class="g-label">简介</label>
+                <textarea class="g-field" id="landmark-description" placeholder="请输入地标简介..." style="width:100%;min-height:100px;"></textarea>
+            </div>
+
+            <div class="form-card g-section">
+                <label class="g-label" style="margin-bottom: 8px;">图标样式</label>
+
+                <div class="icon-preview-wrapper">
+                    <div class="icon-preview-circle" id="icon-preview">
+                        <i class="fa-solid fa-location-dot" id="icon-preview-i"></i>
+                    </div>
+                    <span class="icon-preview-label">当前图标预览</span>
+                </div>
+
+                <div class="icon-grid no-scrollbar">
+                    <button type="button" class="icon-opt active" data-icon="fa-location-dot" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-hospital" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-hospital"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-film" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-film"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-hotel" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-hotel"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-landmark" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-landmark"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-tree" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-tree"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-utensils" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-utensils"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-music" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-music"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-book" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-book"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-shop" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-shop"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-school" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-school"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-building" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-building"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-mosque" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-mosque"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-church" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-church"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-museum" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-museum"></i>
+                    </button>
+                    <button type="button" class="icon-opt" data-icon="fa-monument" onclick="selectIcon(this)">
+                        <i class="fa-solid fa-monument"></i>
+                    </button>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <label class="g-label" style="margin-bottom: 8px;">颜色</label>
+                    <div class="color-row">
+                        <button type="button" class="clr-opt active" data-color="#4285f4" onclick="selectColor(this)"></button>
+                        <button type="button" class="clr-opt" data-color="#ea4335" onclick="selectColor(this)"></button>
+                        <button type="button" class="clr-opt" data-color="#34a853" onclick="selectColor(this)"></button>
+                        <button type="button" class="clr-opt" data-color="#fbbc05" onclick="selectColor(this)"></button>
+                        <button type="button" class="clr-opt" data-color="#8e44ad" onclick="selectColor(this)"></button>
+                        <button type="button" class="clr-opt" data-color="#0e1115" onclick="selectColor(this)"></button>
+                        <button type="button" class="clr-opt" data-color="#f538a0" onclick="selectColor(this)"></button>
+                        <button type="button" class="clr-opt" data-color="#16a085" onclick="selectColor(this)"></button>
+                        <div class="color-custom-wrapper">
+                            <input type="color" id="custom-color" value="#4285f4" title="自定义颜色" oninput="selectCustomColor(this.value)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="bottom-save-bar">
+        <button type="button" onclick="saveLandmark()">保存</button>
+    </div>
+
+    <div class="pos-picker-overlay" id="pos-picker">
+        <div class="pos-picker-header">
+            <div class="pos-picker-headerspacer"></div>
+            <span class="pos-picker-title">点击地图选取位置</span>
+            <button class="pos-picker-done" onclick="closePositionPicker()">完成</button>
+        </div>
+        <div class="pos-picker-body">
+            <div class="pos-picker-img-wrap" id="picker-img-wrap">
+                <img id="picker-img" src="/assets/community-map-base.png" alt="地图底图" />
+                <div class="picker-marker" id="picker-marker" style="left: 50%; top: 50%;">
+                    <div class="picker-marker-dot" id="picker-marker-dot"></div>
+                </div>
+                <div class="picker-label" id="picker-label">X: 50.0%  Y: 50.0%</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/edit.js"></script>
+</body>
+</html>

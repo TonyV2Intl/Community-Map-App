@@ -1,0 +1,21 @@
+{
+  "name": "community-map-app",
+  "version": "1.0.0",
+  "description": "瑞金二路街道便民地图应用 - 基于 Cloudflare Pages + KV",
+  "scripts": {
+    "dev": "wrangler pages dev public --kv LANDMARKS",
+    "deploy": "wrangler pages deploy public"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.17"
+  },
+  "keywords": [
+    "cloudflare",
+    "pages",
+    "kv",
+    "map",
+    "community"
+  ],
+  "author": "",
+  "license": "MIT"
+}
