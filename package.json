@@ -7,7 +7,7 @@
     "deploy": "wrangler pages deploy public"
   },
   "devDependencies": {
-    "wrangler": "^3.114.17"
+    "wrangler": "^4.112.0"
   },
   "keywords": [
     "cloudflare",
