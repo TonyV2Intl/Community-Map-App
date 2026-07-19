@@ -1,3 +1,5 @@
+const LIST_KEY = 'landmarks:list';
+
 const DEFAULT_LANDMARKS = [
   {
     id: 'zhou-gongguan',
@@ -10,8 +12,8 @@ const DEFAULT_LANDMARKS = [
     description: '周公馆位于上海市黄浦区思南路73号，是中国共产党早期在上海的重要活动场所。1946年至1947年间，周恩来同志曾在此办公和居住。现为全国重点文物保护单位，是上海市重要的红色旅游景点。',
     imageUrl: '',
     enabled: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    createdAt: 1718900000000,
+    updatedAt: 1718900000000
   },
   {
     id: 'guotai-cinema',
@@ -24,8 +26,8 @@ const DEFAULT_LANDMARKS = [
     description: '国泰电影院始建于1930年，是上海著名的历史建筑之一，具有装饰艺术风格。',
     imageUrl: '',
     enabled: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    createdAt: 1718900000000,
+    updatedAt: 1718900000000
   },
   {
     id: 'ruijin-hospital',
@@ -38,8 +40,8 @@ const DEFAULT_LANDMARKS = [
     description: '上海交通大学医学院附属瑞金医院，是一所集医疗、教学、科研为一体的三级甲等综合性医院。',
     imageUrl: '',
     enabled: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    createdAt: 1718900000000,
+    updatedAt: 1718900000000
   },
   {
     id: 'garden-hotel',
@@ -52,8 +54,8 @@ const DEFAULT_LANDMARKS = [
     description: '上海花园饭店是一座五星级豪华酒店，位于原法国俱乐部旧址。',
     imageUrl: '',
     enabled: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    createdAt: 1718900000000,
+    updatedAt: 1718900000000
   },
   {
     id: 'culture-plaza',
@@ -66,8 +68,8 @@ const DEFAULT_LANDMARKS = [
     description: '上海文化广场是集演出、展览、会议等功能于一体的大型文化艺术中心。',
     imageUrl: '',
     enabled: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    createdAt: 1718900000000,
+    updatedAt: 1718900000000
   },
   {
     id: 'sinan-mansion',
@@ -80,8 +82,8 @@ const DEFAULT_LANDMARKS = [
     description: '思南公馆是上海市中心唯一一个以成片花园洋房的保留保护为宗旨的项目。',
     imageUrl: '',
     enabled: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    createdAt: 1718900000000,
+    updatedAt: 1718900000000
   },
   {
     id: 'sun-yat-sen',
@@ -94,8 +96,8 @@ const DEFAULT_LANDMARKS = [
     description: '孙中山故居是孙中山和宋庆龄在上海的寓所，现为全国重点文物保护单位。',
     imageUrl: '',
     enabled: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    createdAt: 1718900000000,
+    updatedAt: 1718900000000
   },
   {
     id: 'yuyangli',
@@ -108,12 +110,10 @@ const DEFAULT_LANDMARKS = [
     description: '渔阳里是中国社会主义青年团中央机关旧址，具有重要的历史意义。',
     imageUrl: '',
     enabled: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+    createdAt: 1718900000000,
+    updatedAt: 1718900000000
   }
 ];
-
-const LIST_KEY = 'landmarks:list';
 
 async function getAllLandmarks(env) {
   try {
@@ -125,16 +125,16 @@ async function getAllLandmarks(env) {
     console.error('Failed to get landmarks from KV:', e);
   }
 
-  await env.LANDMARKS.put(LIST_KEY, JSON.stringify(DEFAULT_LANDMARKS));
+  await env.LANDMARKS.put(LIST_KEY, JSON.stringify(DEFAULT_LANDMARKS, null, 2));
   return DEFAULT_LANDMARKS;
 }
 
 async function saveAllLandmarks(env, landmarks) {
-  await env.LANDMARKS.put(LIST_KEY, JSON.stringify(landmarks));
+  await env.LANDMARKS.put(LIST_KEY, JSON.stringify(landmarks, null, 2));
 }
 
 function generateId() {
-  return 'lm_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+  return 'lm_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 }
 
 function corsHeaders() {
@@ -145,7 +145,8 @@ function corsHeaders() {
   };
 }
 
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status) {
+  status = status || 200;
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -156,7 +157,7 @@ function jsonResponse(data, status = 200) {
 }
 
 export async function onRequestGet(context) {
-  const { env } = context;
+  const env = context.env;
 
   try {
     const landmarks = await getAllLandmarks(env);
@@ -168,7 +169,8 @@ export async function onRequestGet(context) {
 }
 
 export async function onRequestPost(context) {
-  const { request, env } = context;
+  const request = context.request;
+  const env = context.env;
 
   try {
     const data = await request.json();

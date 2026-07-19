@@ -13,7 +13,7 @@ async function getAllLandmarks(env) {
 }
 
 async function saveAllLandmarks(env, landmarks) {
-  await env.LANDMARKS.put(LIST_KEY, JSON.stringify(landmarks));
+  await env.LANDMARKS.put(LIST_KEY, JSON.stringify(landmarks, null, 2));
 }
 
 function corsHeaders() {
@@ -24,7 +24,8 @@ function corsHeaders() {
   };
 }
 
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status) {
+  status = status || 200;
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -35,12 +36,13 @@ function jsonResponse(data, status = 200) {
 }
 
 export async function onRequestGet(context) {
-  const { request, env, params } = context;
+  const env = context.env;
+  const params = context.params;
   const id = params.id;
 
   try {
     const landmarks = await getAllLandmarks(env);
-    const landmark = landmarks.find(l => l.id === id);
+    const landmark = landmarks.find(function(l) { return l.id === id; });
 
     if (!landmark) {
       return jsonResponse({ error: 'Landmark not found' }, 404);
@@ -54,13 +56,15 @@ export async function onRequestGet(context) {
 }
 
 export async function onRequestPut(context) {
-  const { request, env, params } = context;
+  const request = context.request;
+  const env = context.env;
+  const params = context.params;
   const id = params.id;
 
   try {
     const data = await request.json();
     const landmarks = await getAllLandmarks(env);
-    const index = landmarks.findIndex(l => l.id === id);
+    const index = landmarks.findIndex(function(l) { return l.id === id; });
 
     if (index === -1) {
       return jsonResponse({ error: 'Landmark not found' }, 404);
@@ -84,12 +88,13 @@ export async function onRequestPut(context) {
 }
 
 export async function onRequestDelete(context) {
-  const { env, params } = context;
+  const env = context.env;
+  const params = context.params;
   const id = params.id;
 
   try {
     const landmarks = await getAllLandmarks(env);
-    const index = landmarks.findIndex(l => l.id === id);
+    const index = landmarks.findIndex(function(l) { return l.id === id; });
 
     if (index === -1) {
       return jsonResponse({ error: 'Landmark not found' }, 404);
