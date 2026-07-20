@@ -116,25 +116,76 @@ export const DEFAULT_LANDMARKS = [
 ];
 
 export async function getAllLandmarks(env) {
-  try {
-    const listData = await env.LANDMARKS.get(LIST_KEY, 'json');
-    if (listData && Array.isArray(listData) && listData.length > 0) {
-      return listData;
-    }
-  } catch (e) {
-    console.error('Failed to get landmarks from KV:', e);
+  if (!env.LANDMARKS) {
+    console.warn('LANDMARKS KV namespace not configured, using default data');
+    return DEFAULT_LANDMARKS;
   }
 
-  await env.LANDMARKS.put(LIST_KEY, JSON.stringify(DEFAULT_LANDMARKS, null, 2));
+  let listData;
+  let readFailed = false;
+  
+  try {
+    listData = await env.LANDMARKS.get(LIST_KEY, 'json');
+  } catch (e) {
+    console.error('Failed to get landmarks from KV:', e);
+    readFailed = true;
+  }
+
+  if (readFailed) {
+    return DEFAULT_LANDMARKS;
+  }
+
+  if (listData && Array.isArray(listData) && listData.length > 0) {
+    return listData;
+  }
+
+  try {
+    await env.LANDMARKS.put(LIST_KEY, JSON.stringify(DEFAULT_LANDMARKS, null, 2));
+  } catch (e) {
+    console.error('Failed to put landmarks to KV:', e);
+  }
+  
   return DEFAULT_LANDMARKS;
 }
 
 export async function saveAllLandmarks(env, landmarks) {
+  if (!env.LANDMARKS) {
+    console.warn('LANDMARKS KV namespace not configured, cannot save data');
+    return;
+  }
   await env.LANDMARKS.put(LIST_KEY, JSON.stringify(landmarks, null, 2));
 }
 
 export function generateId() {
   return 'lm_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+}
+
+export async function verifyToken(env, token) {
+  if (!token) return false;
+
+  const secret = env.ADMIN_PASSWORD;
+  if (!secret) {
+    console.error('ADMIN_PASSWORD not configured');
+    return false;
+  }
+
+  const parts = token.split(':');
+  if (parts.length !== 2) return false;
+
+  const timestamp = parseInt(parts[0]);
+  const hash = parts[1];
+
+  if (isNaN(timestamp)) return false;
+  if (Date.now() - timestamp > 24 * 60 * 60 * 1000) return false;
+
+  const raw = `${secret}:${timestamp}`;
+  const encoder = new TextEncoder();
+  const data = encoder.encode(raw);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const expectedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return hash === expectedHash;
 }
 
 export function corsHeaders() {

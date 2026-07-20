@@ -2,17 +2,6 @@ let landmarks = [];
 let filteredLandmarks = [];
 let deleteTargetId = null;
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function validateColor(color) {
-    const hexPattern = /^#[0-9a-fA-F]{6}$/;
-    return hexPattern.test(color) ? color : '#4285f4';
-}
-
 function getIconClass(icon) {
     const iconMap = {
         'fa-location-dot': 'fa-location-dot',
@@ -38,17 +27,26 @@ function getIconClass(icon) {
 function renderList() {
     const listEl = document.getElementById('landmark-list');
     let emptyEl = document.getElementById('empty-state');
+    const loadingEl = document.getElementById('loading-state');
+    const searchQuery = document.getElementById('search-input').value;
 
-    const data = filteredLandmarks.length > 0 || document.getElementById('search-input').value
+    const data = filteredLandmarks.length > 0 || searchQuery
         ? filteredLandmarks
         : landmarks;
 
     if (data.length === 0) {
+        const isSearching = searchQuery.trim() !== '';
+        const iconClass = isSearching ? 'fa-magnifying-glass' : 'fa-map';
+        const message = isSearching ? '未找到匹配地标' : '暂无地标数据';
+
         if (!emptyEl) {
             emptyEl = document.createElement('div');
             emptyEl.className = 'empty-state';
-            emptyEl.innerHTML = '<i class="fa-regular fa-map" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i><p>暂无地标数据</p>';
+            emptyEl.id = 'empty-state';
+            emptyEl.innerHTML = `<i class="fa-regular ${iconClass}" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i><p>${message}</p>`;
             listEl.appendChild(emptyEl);
+        } else {
+            emptyEl.innerHTML = `<i class="fa-regular ${iconClass}" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i><p>${message}</p>`;
         }
         emptyEl.style.display = 'flex';
         return;
@@ -57,7 +55,8 @@ function renderList() {
     if (emptyEl) {
         emptyEl.style.display = 'none';
     }
-    listEl.innerHTML = data.map(landmark => {
+    
+    const itemsHtml = data.map(landmark => {
         const iconClass = getIconClass(landmark.icon);
         const color = validateColor(landmark.color);
         const escapedName = escapeHtml(landmark.name || '');
@@ -81,6 +80,7 @@ function renderList() {
         `;
     }).join('');
 
+    listEl.innerHTML = itemsHtml;
     updateStats();
 }
 
@@ -111,6 +111,22 @@ function goToEdit(id) {
 
 function goBack() {
     window.location.href = '/';
+}
+
+async function handleLogout() {
+    try {
+        const res = await fetch('/api/auth', {
+            method: 'DELETE'
+        });
+        if (res.ok) {
+            window.location.href = '/console-login';
+        } else {
+            showToast('登出失败，请重试');
+        }
+    } catch (e) {
+        console.error('登出失败:', e);
+        showToast('登出失败，请检查网络');
+    }
 }
 
 function showDeleteConfirm(id, name) {
@@ -147,20 +163,6 @@ async function confirmDelete() {
     }
 
     cancelDelete();
-}
-
-function showToast(message) {
-    let toast = document.querySelector('.toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.className = 'toast';
-        document.body.appendChild(toast);
-    }
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2000);
 }
 
 function exportData() {
@@ -237,6 +239,11 @@ async function handleImportFile(input) {
 }
 
 async function loadLandmarks() {
+    const loadingEl = document.getElementById('loading-state');
+    if (loadingEl) {
+        loadingEl.style.display = 'flex';
+    }
+    
     try {
         const res = await fetch('/api/landmarks');
         if (res.ok) {
@@ -251,6 +258,10 @@ async function loadLandmarks() {
         console.warn('加载地标失败', e);
         landmarks = [];
         showToast('数据加载失败，请检查网络');
+    }
+    
+    if (loadingEl) {
+        loadingEl.style.display = 'none';
     }
     renderList();
 }
