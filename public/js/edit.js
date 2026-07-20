@@ -133,7 +133,14 @@ function updateImagePreview() {
     const preview = document.getElementById('image-preview');
 
     if (url) {
-        preview.innerHTML = `<img src="${url}" alt="预览图" onerror="this.parentElement.innerHTML='<i class=\\'fa-regular fa-image image-preview-placeholder\\'></i>'" />`;
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = '预览图';
+        img.onerror = function() {
+            preview.innerHTML = '<i class="fa-regular fa-image image-preview-placeholder"></i>';
+        };
+        preview.innerHTML = '';
+        preview.appendChild(img);
     } else {
         preview.innerHTML = '<i class="fa-regular fa-image image-preview-placeholder"></i>';
     }

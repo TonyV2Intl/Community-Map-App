@@ -1,0 +1,6 @@
+# Cloudflare Pages Functions 环境变量示例
+# 复制此文件为 .dev.vars 并修改相应值
+
+# 管理员密码（必须设置）
+# 请使用强密码，建议至少 12 位，包含字母、数字和特殊字符
+ADMIN_PASSWORD=your-secure-password-here

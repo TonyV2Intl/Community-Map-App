@@ -91,7 +91,7 @@ export async function onRequestPut(context) {
 }
 
 export async function onRequestDelete() {
-  return jsonResponse({ error: 'Use DELETE /api/landmarks/:id to delete a single landmark' }, 400);
+  return jsonResponse({ error: 'Use DELETE /api/landmarks/:id to delete a single landmark', success: false }, 400);
 }
 
 export async function onRequestOptions() {

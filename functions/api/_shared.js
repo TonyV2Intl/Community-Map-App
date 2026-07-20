@@ -162,23 +162,29 @@ export function generateId() {
 
 export async function verifyToken(env, token) {
   if (!token) return false;
+
+  const secret = env.ADMIN_PASSWORD;
+  if (!secret) {
+    console.error('ADMIN_PASSWORD not configured');
+    return false;
+  }
+
   const parts = token.split(':');
   if (parts.length !== 2) return false;
-  
+
   const timestamp = parseInt(parts[0]);
   const hash = parts[1];
-  
+
   if (isNaN(timestamp)) return false;
   if (Date.now() - timestamp > 24 * 60 * 60 * 1000) return false;
-  
-  const secret = env.ADMIN_PASSWORD || '';
+
   const raw = `${secret}:${timestamp}`;
   const encoder = new TextEncoder();
   const data = encoder.encode(raw);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const expectedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
+
   return hash === expectedHash;
 }
 

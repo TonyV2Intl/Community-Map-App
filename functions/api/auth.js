@@ -1,15 +1,19 @@
 import { corsHeaders, jsonResponse, verifyToken } from './_shared';
 
 async function generateToken(env) {
-  const secret = env.ADMIN_PASSWORD || '';
+  const secret = env.ADMIN_PASSWORD;
+  if (!secret) {
+    throw new Error('ADMIN_PASSWORD not configured');
+  }
+
   const timestamp = Date.now();
   const raw = `${secret}:${timestamp}`;
   const encoder = new TextEncoder();
   const data = encoder.encode(raw);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashBase64 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return `${timestamp}:${hashBase64}`;
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${timestamp}:${hashHex}`;
 }
 
 export async function onRequestPost(context) {
@@ -19,10 +23,11 @@ export async function onRequestPost(context) {
   try {
     const data = await request.json();
     const password = data.password || '';
-    const expectedPassword = env.ADMIN_PASSWORD || '';
+    const expectedPassword = env.ADMIN_PASSWORD;
 
     if (!expectedPassword) {
-      return jsonResponse({ error: '管理员密码未配置' }, 500);
+      console.error('ADMIN_PASSWORD not configured');
+      return jsonResponse({ error: '系统配置错误：管理员密码未配置' }, 500);
     }
 
     if (password !== expectedPassword) {
@@ -31,7 +36,7 @@ export async function onRequestPost(context) {
 
     const token = await generateToken(env);
     const isLocal = request.url.includes('localhost') || request.url.includes('127.0.0.1');
-    
+
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: {
