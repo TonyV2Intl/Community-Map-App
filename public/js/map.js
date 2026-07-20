@@ -1,5 +1,16 @@
 let landmarks = [];
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function validateColor(color) {
+    const hexPattern = /^#[0-9a-fA-F]{6}$/;
+    return hexPattern.test(color) ? color : '#4285f4';
+}
+
 const viewport = document.getElementById('map-viewport');
 const wrapper = document.getElementById('map-transform-wrapper');
 const markersContainer = document.getElementById('markers-container');
@@ -212,16 +223,18 @@ function getIconClass(icon) {
 
 function renderMarkers() {
     markersContainer.innerHTML = '';
-    landmarks.forEach(landmark => {
+    const enabledLandmarks = landmarks.filter(l => l.enabled !== false);
+    enabledLandmarks.forEach(landmark => {
         const marker = document.createElement('div');
         marker.className = 'landmark-marker';
         marker.style.left = landmark.x + '%';
         marker.style.top = landmark.y + '%';
         marker.title = landmark.name;
-        marker.setAttribute('data-id', landmark.id);
+        marker.setAttribute('data-id', escapeHtml(landmark.id));
 
         const iconClass = getIconClass(landmark.icon);
-        const color = landmark.color || 'var(--cmap-primary)';
+        const color = validateColor(landmark.color);
+        const escapedName = escapeHtml(landmark.name || '');
 
         marker.innerHTML = `
             <div class="marker-icon">
@@ -230,7 +243,7 @@ function renderMarkers() {
                 </div>
             </div>
             <div class="marker-label">
-                <span>${landmark.name}</span>
+                <span>${escapedName}</span>
             </div>
         `;
 
@@ -253,7 +266,11 @@ function openDetail(id) {
 
     const imageEl = document.getElementById('detail-image');
     if (landmark.imageUrl) {
-        imageEl.innerHTML = `<img src="${landmark.imageUrl}" alt="${landmark.name}" />`;
+        const img = document.createElement('img');
+        img.src = landmark.imageUrl;
+        img.alt = landmark.name || '';
+        imageEl.innerHTML = '';
+        imageEl.appendChild(img);
     } else {
         imageEl.innerHTML = '<i class="fa-regular fa-image detail-image-placeholder" style="font-size: 40px;"></i>';
     }
@@ -302,15 +319,18 @@ function handleSearch(query) {
 
     resultsContainer.innerHTML = results.map(landmark => {
         const iconClass = getIconClass(landmark.icon);
-        const color = landmark.color || 'var(--cmap-primary)';
+        const color = validateColor(landmark.color);
+        const escapedId = escapeHtml(landmark.id);
+        const escapedName = escapeHtml(landmark.name || '');
+        const escapedAddress = escapeHtml(landmark.address || '');
         return `
-            <div class="search-result-item" onclick="goToLandmark('${landmark.id}')">
+            <div class="search-result-item" data-id="${escapedId}">
                 <div class="search-result-icon" style="background: ${color};">
                     <i class="fa-solid ${iconClass}" style="font-size: 14px;"></i>
                 </div>
                 <div class="search-result-info">
-                    <div class="search-result-name">${landmark.name}</div>
-                    <div class="search-result-addr">${landmark.address || ''}</div>
+                    <div class="search-result-name">${escapedName}</div>
+                    <div class="search-result-addr">${escapedAddress}</div>
                 </div>
                 <i class="fa-solid fa-chevron-right" style="color: var(--cmap-muted-foreground); font-size: 14px;"></i>
             </div>
@@ -370,99 +390,16 @@ async function loadLandmarks() {
             const data = await res.json();
             landmarks = data;
         } else {
-            console.warn('API请求失败，使用默认数据');
-            landmarks = getDefaultLandmarks();
+            console.warn('API请求失败');
+            landmarks = [];
+            showToast('数据加载失败');
         }
     } catch (e) {
-        console.warn('加载地标失败，使用默认数据', e);
-        landmarks = getDefaultLandmarks();
+        console.warn('加载地标失败', e);
+        landmarks = [];
+        showToast('数据加载失败，请检查网络');
     }
     renderMarkers();
-}
-
-function getDefaultLandmarks() {
-    return [
-        {
-            id: 'zhou-gongguan',
-            name: '周公馆',
-            address: '黄浦区思南路73号',
-            x: 38,
-            y: 28,
-            icon: 'fa-location-dot',
-            color: '#4285f4',
-            description: '周公馆位于上海市黄浦区思南路73号，是中国共产党早期在上海的重要活动场所。1946年至1947年间，周恩来同志曾在此办公和居住。现为全国重点文物保护单位，是上海市重要的红色旅游景点。'
-        },
-        {
-            id: 'guotai-cinema',
-            name: '国泰电影院',
-            address: '黄浦区淮海中路870号',
-            x: 52,
-            y: 22,
-            icon: 'fa-film',
-            color: '#4285f4',
-            description: '国泰电影院始建于1930年，是上海著名的历史建筑之一，具有装饰艺术风格。'
-        },
-        {
-            id: 'ruijin-hospital',
-            name: '瑞金医院',
-            address: '黄浦区瑞金二路197号',
-            x: 32,
-            y: 42,
-            icon: 'fa-hospital',
-            color: '#34a853',
-            description: '上海交通大学医学院附属瑞金医院，是一所集医疗、教学、科研为一体的三级甲等综合性医院。'
-        },
-        {
-            id: 'garden-hotel',
-            name: '花园饭店',
-            address: '黄浦区茂名南路58号',
-            x: 55,
-            y: 35,
-            icon: 'fa-hotel',
-            color: '#4285f4',
-            description: '上海花园饭店是一座五星级豪华酒店，位于原法国俱乐部旧址。'
-        },
-        {
-            id: 'culture-plaza',
-            name: '上海文化广场',
-            address: '黄浦区永嘉路36号',
-            x: 48,
-            y: 55,
-            icon: 'fa-music',
-            color: '#8e44ad',
-            description: '上海文化广场是集演出、展览、会议等功能于一体的大型文化艺术中心。'
-        },
-        {
-            id: 'sinan-mansion',
-            name: '思南公馆',
-            address: '黄浦区思南路55号',
-            x: 42,
-            y: 45,
-            icon: 'fa-landmark',
-            color: '#ea4335',
-            description: '思南公馆是上海市中心唯一一个以成片花园洋房的保留保护为宗旨的项目。'
-        },
-        {
-            id: 'sun-yat-sen',
-            name: '孙中山纪念馆',
-            address: '黄浦区香山路7号',
-            x: 35,
-            y: 60,
-            icon: 'fa-monument',
-            color: '#ea4335',
-            description: '孙中山故居是孙中山和宋庆龄在上海的寓所，现为全国重点文物保护单位。'
-        },
-        {
-            id: 'yuyangli',
-            name: '渔阳里',
-            address: '黄浦区淮海中路567弄',
-            x: 60,
-            y: 40,
-            icon: 'fa-building',
-            color: '#ea4335',
-            description: '渔阳里是中国社会主义青年团中央机关旧址，具有重要的历史意义。'
-        }
-    ];
 }
 
 if (document.readyState === 'complete') {
@@ -479,6 +416,16 @@ function init() {
 window.addEventListener('resize', function() {
     clampBounds();
     applyTransform();
+});
+
+document.getElementById('search-results').addEventListener('click', function(e) {
+    const item = e.target.closest('.search-result-item');
+    if (item) {
+        const id = item.getAttribute('data-id');
+        if (id) {
+            goToLandmark(id);
+        }
+    }
 });
 
 document.addEventListener('keydown', function(e) {

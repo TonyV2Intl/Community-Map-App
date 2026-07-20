@@ -57,6 +57,12 @@ npm run dev
 
 开发模式下，KV 数据会保存在 `.wrangler/state` 目录，重启服务器后数据不会丢失。
 
+如果要重置数据，删除 `.wrangler/state` 目录即可，或输入 `Remove-Item -Recurse -Force .wrangler/state`
+
+### 重置 KV 数据
+
+在 Cloudflare 控制台，导航到 **Workers & Pages** → **KV**，找到 `LANDMARKS` 命名空间，点击 **重置**。
+
 ## 部署到 Cloudflare Pages
 
 ### 1. 创建 KV 命名空间

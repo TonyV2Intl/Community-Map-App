@@ -1,39 +1,4 @@
-const LIST_KEY = 'landmarks:list';
-
-async function getAllLandmarks(env) {
-  try {
-    const listData = await env.LANDMARKS.get(LIST_KEY, 'json');
-    if (listData && Array.isArray(listData)) {
-      return listData;
-    }
-  } catch (e) {
-    console.error('Failed to get landmarks from KV:', e);
-  }
-  return [];
-}
-
-async function saveAllLandmarks(env, landmarks) {
-  await env.LANDMARKS.put(LIST_KEY, JSON.stringify(landmarks, null, 2));
-}
-
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-}
-
-function jsonResponse(data, status) {
-  status = status || 200;
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders()
-    }
-  });
-}
+import { getAllLandmarks, saveAllLandmarks, corsHeaders, jsonResponse } from '../_shared';
 
 export async function onRequestGet(context) {
   const env = context.env;

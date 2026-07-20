@@ -2,6 +2,7 @@ let isNew = true;
 let editingId = null;
 let selectedIcon = 'fa-location-dot';
 let selectedColor = '#4285f4';
+let landmarkEnabled = true;
 
 const urlParams = new URLSearchParams(window.location.search);
 const idParam = urlParams.get('id');
@@ -61,6 +62,8 @@ function fillForm(landmark) {
         selectedColor = landmark.color;
         updateColorSelection();
     }
+
+    landmarkEnabled = landmark.enabled !== false;
 
     updateImagePreview();
     updateIconPreview();
@@ -183,7 +186,7 @@ async function saveLandmark() {
         y,
         icon: selectedIcon,
         color: selectedColor,
-        enabled: true
+        enabled: landmarkEnabled
     };
 
     try {
