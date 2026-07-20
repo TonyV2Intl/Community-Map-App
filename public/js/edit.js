@@ -205,7 +205,7 @@ async function saveLandmark() {
         if (res.ok) {
             showToast(isNew ? '创建成功' : '保存成功');
             setTimeout(() => {
-                window.location.href = '/console.html';
+                window.location.href = '/console';
             }, 800);
         } else {
             showToast('保存失败，请重试');
@@ -217,7 +217,7 @@ async function saveLandmark() {
 }
 
 function goBack() {
-    window.location.href = '/console.html';
+    window.location.href = '/console';
 }
 
 function showToast(message) {

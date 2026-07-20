@@ -83,9 +83,9 @@ function handleSearch(query) {
 
 function goToEdit(id) {
     if (id) {
-        window.location.href = `/console-edit.html?id=${encodeURIComponent(id)}`;
+        window.location.href = `/console-edit?id=${encodeURIComponent(id)}`;
     } else {
-        window.location.href = '/console-edit.html';
+        window.location.href = '/console-edit';
     }
 }
 
