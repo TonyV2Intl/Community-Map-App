@@ -143,6 +143,32 @@
         .back-to-map:hover {
             background: rgba(66, 133, 244, 0.08);
         }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border-radius: var(--cmap-radius-md);
+            background: var(--cmap-muted);
+            color: var(--cmap-foreground);
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+        .action-btn:hover {
+            background: var(--cmap-muted-foreground);
+        }
+        #import-file {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -155,9 +181,19 @@
                     </button>
                     <h1>地标管理</h1>
                 </div>
-                <button type="button" class="add-btn" aria-label="新增地标" onclick="goToEdit()">
-                    <i class="fa-solid fa-plus" style="font-size: 16px; color: white;"></i>
-                </button>
+                <div class="header-actions">
+                    <button type="button" class="action-btn" aria-label="导出数据" onclick="exportData()">
+                        <i class="fa-solid fa-download" style="font-size: 14px;"></i>
+                        <span>导出</span>
+                    </button>
+                    <button type="button" class="action-btn" aria-label="导入数据" onclick="triggerImport()">
+                        <i class="fa-solid fa-upload" style="font-size: 14px;"></i>
+                        <span>导入</span>
+                    </button>
+                    <button type="button" class="add-btn" aria-label="新增地标" onclick="goToEdit()">
+                        <i class="fa-solid fa-plus" style="font-size: 16px; color: white;"></i>
+                    </button>
+                </div>
             </header>
 
             <a href="/" class="back-to-map">
@@ -206,6 +242,8 @@
             </div>
         </div>
     </div>
+
+    <input type="file" id="import-file" accept=".json" onchange="handleImportFile(this)" />
 
     <script src="/js/console.js"></script>
 </body>

@@ -37,19 +37,26 @@ function getIconClass(icon) {
 
 function renderList() {
     const listEl = document.getElementById('landmark-list');
-    const emptyEl = document.getElementById('empty-state');
+    let emptyEl = document.getElementById('empty-state');
 
     const data = filteredLandmarks.length > 0 || document.getElementById('search-input').value
         ? filteredLandmarks
         : landmarks;
 
     if (data.length === 0) {
-        listEl.innerHTML = '';
+        if (!emptyEl) {
+            emptyEl = document.createElement('div');
+            emptyEl.className = 'empty-state';
+            emptyEl.innerHTML = '<i class="fa-regular fa-map" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i><p>暂无地标数据</p>';
+            listEl.appendChild(emptyEl);
+        }
         emptyEl.style.display = 'flex';
         return;
     }
 
-    emptyEl.style.display = 'none';
+    if (emptyEl) {
+        emptyEl.style.display = 'none';
+    }
     listEl.innerHTML = data.map(landmark => {
         const iconClass = getIconClass(landmark.icon);
         const color = validateColor(landmark.color);
@@ -154,6 +161,79 @@ function showToast(message) {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 2000);
+}
+
+function exportData() {
+    if (landmarks.length === 0) {
+        showToast('暂无数据可导出');
+        return;
+    }
+
+    const data = JSON.stringify(landmarks, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const date = new Date().toISOString().split('T')[0];
+    a.download = `landmarks-backup-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('数据导出成功');
+}
+
+function triggerImport() {
+    document.getElementById('import-file').click();
+}
+
+async function handleImportFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    try {
+        const text = await file.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            showToast('无效的JSON文件');
+            input.value = '';
+            return;
+        }
+
+        if (!Array.isArray(data)) {
+            showToast('文件格式错误：应为数组');
+            input.value = '';
+            return;
+        }
+
+        if (data.length === 0) {
+            showToast('文件内容为空');
+            input.value = '';
+            return;
+        }
+
+        const res = await fetch('/api/landmarks', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            const result = await res.json();
+            showToast(`导入成功，共 ${result.count} 个地标`);
+            await loadLandmarks();
+        } else {
+            const err = await res.json();
+            showToast('导入失败：' + (err.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('导入失败:', e);
+        showToast('导入失败，请检查文件');
+    }
+
+    input.value = '';
 }
 
 async function loadLandmarks() {

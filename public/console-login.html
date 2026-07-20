@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>控制台登录 - 社区地图</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--color-neutral-100);
+            padding: 20px;
+        }
+        .login-card {
+            background: white;
+            border-radius: var(--cmap-radius-lg);
+            padding: 32px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .login-header .logo-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--cmap-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            margin: 0 auto 12px;
+        }
+        .login-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--cmap-foreground);
+            margin: 0;
+        }
+        .login-header p {
+            font-size: 13px;
+            color: var(--cmap-muted-foreground);
+            margin: 4px 0 0;
+        }
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .login-form .g-field {
+            height: 44px;
+            font-size: 15px;
+        }
+        .login-btn {
+            height: 44px;
+            border-radius: var(--cmap-radius-md);
+            background: var(--cmap-primary);
+            color: white;
+            font-size: 15px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+        .login-btn:hover {
+            background: var(--cmap-primary);
+            opacity: 0.9;
+        }
+        .login-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .error-message {
+            color: var(--cmap-destructive);
+            font-size: 13px;
+            text-align: center;
+            margin-top: 8px;
+            display: none;
+        }
+        .error-message.show {
+            display: block;
+        }
+        .back-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            color: var(--cmap-primary);
+            font-size: 13px;
+            font-weight: 500;
+            text-decoration: none;
+            margin-top: 16px;
+            padding: 8px;
+            border-radius: var(--cmap-radius-sm);
+            transition: background 0.15s;
+        }
+        .back-link:hover {
+            background: rgba(66, 133, 244, 0.08);
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h1>控制台登录</h1>
+                <p>请输入管理员密码</p>
+            </div>
+            <form class="login-form" onsubmit="handleLogin(event)">
+                <input type="password" class="g-field" id="password" placeholder="请输入密码" autocomplete="current-password" />
+                <button type="submit" class="login-btn" id="login-btn">登录</button>
+                <div class="error-message" id="error-message">密码错误，请重试</div>
+            </form>
+            <a href="/" class="back-link">
+                <i class="fa-solid fa-arrow-left" style="font-size: 12px;"></i>
+                返回地图
+            </a>
+        </div>
+    </main>
+
+    <script>
+        async function handleLogin(e) {
+            e.preventDefault();
+            const password = document.getElementById('password').value.trim();
+            const btn = document.getElementById('login-btn');
+            const errorEl = document.getElementById('error-message');
+
+            if (!password) {
+                errorEl.textContent = '请输入密码';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '登录中...';
+            errorEl.classList.remove('show');
+
+            try {
+                const res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                if (res.ok) {
+                    window.location.href = '/console';
+                } else {
+                    errorEl.textContent = '密码错误，请重试';
+                    errorEl.classList.add('show');
+                }
+            } catch (e) {
+                errorEl.textContent = '登录失败，请检查网络';
+                errorEl.classList.add('show');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        }
+
+        document.getElementById('password').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                handleLogin(e);
+            }
+        });
+    </script>
+</body>
+</html>
