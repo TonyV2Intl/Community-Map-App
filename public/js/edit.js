@@ -64,6 +64,7 @@ function fillForm(landmark) {
     }
 
     landmarkEnabled = landmark.enabled !== false;
+    document.getElementById('landmark-enabled').checked = landmarkEnabled;
 
     updateImagePreview();
     updateIconPreview();
@@ -169,11 +170,29 @@ async function saveLandmark() {
     const address = document.getElementById('landmark-address').value.trim();
     const description = document.getElementById('landmark-description').value.trim();
     const imageUrl = document.getElementById('landmark-image').value.trim();
-    const x = parseFloat(document.getElementById('pos-x').value) || 50;
-    const y = parseFloat(document.getElementById('pos-y').value) || 50;
+    const xInput = document.getElementById('pos-x').value;
+    const yInput = document.getElementById('pos-y').value;
+    const x = parseFloat(xInput);
+    const y = parseFloat(yInput);
 
     if (!name) {
         showToast('请输入地标名称');
+        return;
+    }
+
+    if (isNaN(x) || x < 0 || x > 100) {
+        showToast('X坐标必须在0-100之间');
+        return;
+    }
+
+    if (isNaN(y) || y < 0 || y > 100) {
+        showToast('Y坐标必须在0-100之间');
+        return;
+    }
+
+    const colorPattern = /^#[0-9a-fA-F]{6}$/;
+    if (!colorPattern.test(selectedColor)) {
+        showToast('颜色格式不正确');
         return;
     }
 
@@ -223,25 +242,15 @@ function goBack() {
     window.location.href = '/console';
 }
 
-function showToast(message) {
-    let toast = document.querySelector('.toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.className = 'toast';
-        document.body.appendChild(toast);
-    }
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2000);
-}
-
 document.getElementById('pos-picker').addEventListener('click', function(e) {
     if (e.target === this) {
         closePositionPicker();
     }
 });
+
+function toggleEnabled() {
+    landmarkEnabled = document.getElementById('landmark-enabled').checked;
+}
 
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {

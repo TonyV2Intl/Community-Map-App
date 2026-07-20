@@ -190,6 +190,10 @@
                         <i class="fa-solid fa-upload" style="font-size: 14px;"></i>
                         <span>导入</span>
                     </button>
+                    <button type="button" class="action-btn" aria-label="登出" onclick="handleLogout()" style="background: rgba(234, 67, 53, 0.1); color: #ea4335;">
+                        <i class="fa-solid fa-right-from-bracket" style="font-size: 14px;"></i>
+                        <span>登出</span>
+                    </button>
                     <button type="button" class="add-btn" aria-label="新增地标" onclick="goToEdit()">
                         <i class="fa-solid fa-plus" style="font-size: 16px; color: white;"></i>
                     </button>
@@ -225,6 +229,10 @@
         <div class="list-section-title">地标列表</div>
 
         <div class="landmark-list" id="landmark-list">
+            <div class="loading-state" id="loading-state">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: var(--cmap-primary);"></i>
+                <p>加载中...</p>
+            </div>
             <div class="empty-state" id="empty-state" style="display: none;">
                 <i class="fa-regular fa-map" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
                 <p>暂无地标数据</p>
@@ -245,6 +253,7 @@
 
     <input type="file" id="import-file" accept=".json" onchange="handleImportFile(this)" />
 
+    <script src="/js/utils.js"></script>
     <script src="/js/console.js"></script>
 </body>
 </html>

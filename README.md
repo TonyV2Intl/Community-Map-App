@@ -56,7 +56,7 @@ npm install
 ADMIN_PASSWORD=your-password-here
 ```
 
-默认密码为 `admin123`，建议修改。
+默认密码为 `admin`，建议修改。
 
 ### 启动开发服务器
 

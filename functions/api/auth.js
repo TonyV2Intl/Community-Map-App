@@ -1,21 +1,4 @@
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-}
-
-function jsonResponse(data, status) {
-  status = status || 200;
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders()
-    }
-  });
-}
+import { corsHeaders, jsonResponse, verifyToken } from './_shared';
 
 async function generateToken(env) {
   const secret = env.ADMIN_PASSWORD || '';
@@ -27,28 +10,6 @@ async function generateToken(env) {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashBase64 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   return `${timestamp}:${hashBase64}`;
-}
-
-async function verifyToken(env, token) {
-  if (!token) return false;
-  const parts = token.split(':');
-  if (parts.length !== 2) return false;
-  
-  const timestamp = parseInt(parts[0]);
-  const hash = parts[1];
-  
-  if (isNaN(timestamp)) return false;
-  if (Date.now() - timestamp > 24 * 60 * 60 * 1000) return false;
-  
-  const secret = env.ADMIN_PASSWORD || '';
-  const raw = `${secret}:${timestamp}`;
-  const encoder = new TextEncoder();
-  const data = encoder.encode(raw);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const expectedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  
-  return hash === expectedHash;
 }
 
 export async function onRequestPost(context) {
@@ -96,6 +57,20 @@ export async function onRequestGet(context) {
   const isAuthenticated = await verifyToken(env, token);
   
   return jsonResponse({ authenticated: isAuthenticated });
+}
+
+export async function onRequestDelete(context) {
+  const request = context.request;
+  const isLocal = request.url.includes('localhost') || request.url.includes('127.0.0.1');
+  
+  return new Response(JSON.stringify({ success: true }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Set-Cookie': `auth_token=; HttpOnly; Path=/; SameSite=${isLocal ? 'Lax' : 'Strict'}${isLocal ? '' : '; Secure'}; Max-Age=0`,
+      ...corsHeaders()
+    }
+  });
 }
 
 export async function onRequestOptions() {
