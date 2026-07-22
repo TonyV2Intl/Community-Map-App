@@ -1,0 +1,12 @@
+# 如需要使用 Cloudflare Wrangler 来配置您的项目，则复制此文件为 wrangler.toml 并修改配置
+
+name = "community-map-app"
+compatibility_date = "2026-07-19"
+pages_build_output_dir = "public"
+
+[[kv_namespaces]]
+binding = "LANDMARKS"
+id = "<your-kv-namespace-id-here>"
+
+[vars]
+ADMIN_PASSWORD=<your-password-here>

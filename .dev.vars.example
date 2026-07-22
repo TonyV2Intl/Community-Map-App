@@ -1,2 +1,2 @@
-# 复制此文件为 .dev.vars 并修改管理员密码
-ADMIN_PASSWORD=your-password-here
+# 在本地测试时，复制此文件为 .dev.vars 并修改管理员密码
+ADMIN_PASSWORD=<your-password-here>

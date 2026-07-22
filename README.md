@@ -92,40 +92,50 @@ rm -rf .wrangler/state
 
 ## 部署到 Cloudflare Pages
 
-### 1. 创建 KV 命名空间
+### 方式一：通过 Cloudflare 控制台部署（推荐）
 
-在 Cloudflare 控制台创建 KV 命名空间：
+1. **创建 Pages 项目**
+   - 登录 Cloudflare 控制台
+   - 进入 **Workers & Pages** → **Pages**
+   - 点击 **创建项目** → **连接到 Git**
+   - 选择你的 GitHub/GitLab 仓库
+   - 配置构建设置：
+     - **构建命令**: 留空（无需构建）
+     - **构建输出目录**: `public`
 
-1. 登录 Cloudflare 控制台
-2. 进入 **Workers & Pages** → **KV**
-3. 点击 **创建命名空间**
-4. 输入名称（例如：`community-map-kv`）
+2. **创建 KV 命名空间**
+   - 进入 **Workers & Pages** → **KV**
+   - 点击 **创建命名空间**
+   - 输入名称（例如：`community-map-kv`）
 
-### 2. 配置 Pages 绑定
+3. **配置 Pages 绑定**
+   - 进入你的 Pages 项目
+   - 点击 **设置** → **绑定**
+   - 点击 **+ 添加绑定** → 选择 **KV 命名空间**
+   - **变量名称**: `LANDMARKS`（必须与代码中的绑定名一致）
+   - **KV 命名空间**: 选择你创建的命名空间
 
-在 Cloudflare Pages 项目中配置 KV 绑定：
+4. **配置环境变量**
+   - 进入你的 Pages 项目
+   - 点击 **设置** → **环境变量**
+   - 点击 **+ 添加变量**
+   - **变量名称**: `ADMIN_PASSWORD`
+   - **值**: 设置你的管理员密码
+   - 勾选 **加密** 选项（推荐）
 
-1. 进入你的 Pages 项目
-2. 点击 **设置** → **绑定**
-3. 点击 **+ 添加绑定** → 选择 **KV 命名空间**
-4. **变量名称**: `LANDMARKS`（必须与代码中的绑定名一致）
-5. **KV 命名空间**: 选择你创建的命名空间
+5. **触发部署**
+   - 在 Pages 项目的 **部署** 页面点击 **重新部署**
+   - 或推送代码到仓库自动触发部署
 
-### 3. 配置环境变量
+### 方式二：通过 Wrangler CLI 部署
 
-在 Cloudflare Pages 项目中配置管理员密码：
-
-1. 进入你的 Pages 项目
-2. 点击 **设置** → **环境变量**
-3. 点击 **+ 添加变量**
-4. **变量名称**: `ADMIN_PASSWORD`
-5. **值**: 设置你的管理员密码
-
-### 4. 部署
+此方法建议用于私有仓库部署
 
 ```bash
 npm run deploy
 ```
+
+**注意**: 使用 CLI 部署前需要在 `wrangler.toml` 中配置 KV 绑定。如果不使用显式环境变量存储管理员密码，则需要在Cloudflare控制台中增加机密变量 `ADMIN_PASSWORD`。复制 `wrangler.toml.example` 为 `wrangler.toml` 并修改配置。
 
 ## API 端点
 
@@ -228,11 +238,34 @@ pages_build_output_dir = "public"
 
 **安全注意**: KV 命名空间 ID **不应硬编码**在 `wrangler.toml` 中。线上部署时通过 Cloudflare 控制台配置绑定，本地开发使用 `--kv` 参数创建模拟环境。
 
+如需通过 CLI 部署，复制 `wrangler.toml.example` 为 `wrangler.toml` 并按注释修改配置。
+
 ### 环境变量
 
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | ADMIN_PASSWORD | 控制台管理员密码 | 无（必须设置） |
+
+### 更改底图
+
+要更换地图底图，请按以下步骤操作：
+
+1. **准备图片文件**
+   - 将新底图文件命名为 `map.png`
+   - 图片格式必须为 PNG
+   - 推荐分辨率：根据实际地图区域大小调整，建议使用高分辨率图片以支持缩放
+
+2. **替换图片文件**
+   - 将 `map.png` 复制到 `public/assets/` 目录
+   - 覆盖原有文件
+
+3. **验证修改**
+   - 本地开发：重启开发服务器后刷新页面
+   - 线上部署：推送代码到仓库或重新部署
+
+**注意**: 底图文件名必须为 `map.png`，位置必须在 `/assets/` 目录下。代码中引用底图的位置：
+- `public/index.html` 第 440 行
+- `public/console-edit.html` 第 817 行
 
 ## CORS 支持
 
@@ -254,7 +287,11 @@ A: 使用 `npm run dev` 命令，wrangler 会自动创建本地 KV 模拟环境�
 
 ### Q: 为什么 wrangler.toml 中没有 KV 配置？
 
-A: Cloudflare wrangler **不支持** `${VAR_NAME}` 环境变量语法。为了防止敏感信息泄露，KV 配置仅在部署时通过控制台设置。
+A: 为了防止敏感信息泄露，KV 配置默认不在 `wrangler.toml` 中。推荐通过 Cloudflare 控制台配置绑定。如需通过 CLI 部署，复制 `wrangler.toml.example` 为 `wrangler.toml` 并修改配置。
+
+### Q: 为什么 Cloudflare 控制台显示"绑定/环境变量通过 wrangler.toml 管理"？
+
+A: 当 Cloudflare 检测到项目中存在 `wrangler.toml` 文件时，会将其视为配置的"单一真实来源"。如果 `wrangler.toml` 中缺少配置，需要在控制台重新配置绑定和环境变量，或更新 `wrangler.toml`。
 
 ### Q: preview_id 是否必需？
 
@@ -263,6 +300,10 @@ A: 对于只有一个 main 分支的项目，可以不使用 preview_id。本地
 ### Q: 如何修改管理员密码？
 
 A: 本地开发修改 `.dev.vars` 文件中的 `ADMIN_PASSWORD`；线上部署在 Cloudflare 控制台的 **设置 → 环境变量** 中修改。
+
+### Q: 如何更换地图底图？
+
+A: 将新底图文件命名为 `map.png`，复制到 `public/assets/` 目录覆盖原有文件即可。详细步骤请参考"更改底图"章节。
 
 ## 许可证
 
