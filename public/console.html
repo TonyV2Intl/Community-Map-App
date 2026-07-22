@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>地标管理 - 社区地图</title>
     <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="https://registry.npmmirror.com/@fortawesome/fontawesome-free/7.3.1/files/css/all.min.css" />
+    <link rel="stylesheet" href="/css/fontawesome-all.min.css" />
     <style>
         body {
             padding-bottom: env(safe-area-inset-bottom);
@@ -284,6 +284,24 @@
             cursor: pointer;
             font-family: inherit;
         }
+        .kv-clear-btn {
+            padding: 6px 12px;
+            border-radius: var(--cmap-radius-md);
+            background: #fef2f2;
+            color: #dc2626;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .kv-clear-btn:hover {
+            background: #fee2e2;
+        }
+        
     </style>
 </head>
 <body>
@@ -382,6 +400,10 @@
             </div>
             <div class="kv-modal-body" id="kv-modal-body"></div>
             <div class="kv-modal-footer">
+                <button class="kv-clear-btn" onclick="clearKvValue()">
+                    <i class="fa-solid fa-trash"></i>
+                    清除
+                </button>
                 <button class="kv-copy-btn" onclick="copyKvValue()">
                     <i class="fa-solid fa-copy"></i>
                     复制

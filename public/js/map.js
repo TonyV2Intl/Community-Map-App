@@ -332,13 +332,11 @@ function focusOnLandmark(landmark) {
     const ww = img ? img.naturalWidth || img.offsetWidth : wrapper.offsetWidth;
     const wh = img ? img.naturalHeight || img.offsetHeight : wrapper.offsetHeight;
 
-    const targetScale = Math.max(minScale, Math.min(MAX_SCALE, 1.5));
-    const markerX = (landmark.x / 100) * ww * targetScale;
-    const markerY = (landmark.y / 100) * wh * targetScale;
+    const markerX = (landmark.x / 100) * ww * scale;
+    const markerY = (landmark.y / 100) * wh * scale;
 
     translateX = vw / 2 - markerX;
     translateY = vh / 2 - markerY;
-    scale = targetScale;
 
     clampBounds();
     applyTransform();
@@ -481,23 +479,10 @@ window.addEventListener('resize', function() {
     applyTransform();
 });
 
-document.getElementById('search-results').addEventListener('click', function(e) {
-    const item = e.target.closest('.search-result-item');
-    if (item) {
-        const id = item.getAttribute('data-id');
-        if (id) {
-            goToLandmark(id);
-        }
-    }
-});
-
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         if (document.getElementById('detail-modal').classList.contains('show')) {
             closeDetail();
-        }
-        if (document.getElementById('search-overlay').classList.contains('show')) {
-            toggleSearch();
         }
     }
 });

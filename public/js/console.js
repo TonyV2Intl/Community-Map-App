@@ -348,6 +348,30 @@ function copyKvValue() {
     });
 }
 
+async function clearKvValue() {
+    if (!confirm('确定要清除所有KV值吗？此操作将删除所有地标数据，且无法恢复！')) {
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/kv-debug', { method: 'DELETE' });
+        const data = await res.json();
+        
+        if (data.success) {
+            showToast(data.message);
+            viewKvRaw();
+            loadLandmarks();
+        } else {
+            showToast('清除失败: ' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('清除KV失败:', e);
+        showToast('清除失败: ' + e.message);
+    }
+}
+
+
+
 document.getElementById('kv-modal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeKvModal();
