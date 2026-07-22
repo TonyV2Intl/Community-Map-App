@@ -15,15 +15,35 @@ const viewport = document.getElementById('map-viewport');
 const wrapper = document.getElementById('map-transform-wrapper');
 const markersContainer = document.getElementById('markers-container');
 
-const MIN_SCALE = 1;
-const MAX_SCALE = 3;
+function applyTransform() {
+    wrapper.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    markersContainer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    markersContainer.style.transformOrigin = '0 0';
+    markersContainer.style.setProperty('--map-scale', scale);
+}
+
+const MAX_SCALE = 5;
+const BOUNDARY_BUFFER = 0.2;
 let scale = 1;
 let translateX = 0;
 let translateY = 0;
+let minScale = 1;
+
+function getMinScale() {
+    const vw = viewport.offsetWidth;
+    const vh = viewport.offsetHeight;
+    const img = document.querySelector('#map-transform-wrapper img');
+    const iw = img ? img.naturalWidth || img.offsetWidth : 0;
+    const ih = img ? img.naturalHeight || img.offsetHeight : 0;
+    if (!iw || !ih) return 1;
+    return Math.min(vw / iw, vh / ih);
+}
 
 let isDragging = false;
 let startX = 0;
 let startY = 0;
+let touchStartX = 0;
+let touchStartY = 0;
 let initialPinchDist = 0;
 let initialScale = 1;
 let initialTranslateX = 0;
@@ -51,46 +71,51 @@ function getMidpoint(t1, t2) {
 function clampBounds() {
     const vw = viewport.offsetWidth;
     const vh = viewport.offsetHeight;
-    const ww = wrapper.offsetWidth * scale;
-    const wh = wrapper.offsetHeight * scale;
+    const img = document.querySelector('#map-transform-wrapper img');
+    const iw = img ? img.naturalWidth || img.offsetWidth : 0;
+    const ih = img ? img.naturalHeight || img.offsetHeight : 0;
+    
+    if (!iw || !ih) return;
+    
+    const ww = iw * scale;
+    const wh = ih * scale;
 
-    if (ww <= vw) {
-        translateX = (vw - ww) / 2;
-    } else {
-        const maxPan = (ww - vw) / 2;
-        translateX = Math.max(-maxPan, Math.min(maxPan, translateX));
-    }
+    const extendedW = ww * (1 + BOUNDARY_BUFFER);
+    const extendedH = wh * (1 + BOUNDARY_BUFFER);
 
-    if (wh <= vh) {
-        translateY = (vh - wh) / 2;
-    } else {
-        const maxPanY = (wh - vh) / 2;
-        translateY = Math.max(-maxPanY, Math.min(maxPanY, translateY));
-    }
+    const maxPanX = (extendedW - vw) / 2;
+    const maxPanY = (extendedH - vh) / 2;
+
+    translateX = Math.max(-maxPanX, Math.min(maxPanX, translateX));
+    translateY = Math.max(-maxPanY, Math.min(maxPanY, translateY));
 }
 
-function applyTransform() {
-    wrapper.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-}
+
 
 function centerMap() {
     const vw = viewport.offsetWidth;
     const vh = viewport.offsetHeight;
-    const ww = wrapper.offsetWidth;
-    const wh = wrapper.offsetHeight;
-    scale = Math.min(vw / ww, 1);
-    translateX = (vw - ww * scale) / 2;
-    translateY = (vh - wh * scale) / 2;
+    const img = document.querySelector('#map-transform-wrapper img');
+    const iw = img ? img.naturalWidth || img.offsetWidth : wrapper.offsetWidth;
+    const ih = img ? img.naturalHeight || img.offsetHeight : wrapper.offsetHeight;
+    
+    if (!iw || !ih) return;
+    
+    minScale = Math.min(vw / iw, vh / ih);
+    scale = minScale;
+    translateX = (vw - iw * scale) / 2;
+    translateY = (vh - ih * scale) / 2;
+    clampBounds();
     applyTransform();
 }
 
 function zoomIn() {
-    const newScale = Math.min(MAX_SCALE, scale + 0.25);
+    const newScale = Math.min(MAX_SCALE, scale * 1.25);
     zoomAtCenter(newScale);
 }
 
 function zoomOut() {
-    const newScale = Math.max(MIN_SCALE, scale - 0.25);
+    const newScale = Math.max(minScale, scale / 1.25);
     zoomAtCenter(newScale);
 }
 
@@ -107,13 +132,14 @@ function zoomAtCenter(newScale) {
 }
 
 viewport.addEventListener('touchstart', function(e) {
-    e.preventDefault();
     activeTouches = e.touches.length;
 
     if (activeTouches === 1) {
-        isDragging = true;
+        isDragging = false;
         startX = e.touches[0].clientX - translateX;
         startY = e.touches[0].clientY - translateY;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
     } else if (activeTouches === 2) {
         isDragging = false;
         initialPinchDist = getDistance(e.touches[0], e.touches[1]);
@@ -123,41 +149,47 @@ viewport.addEventListener('touchstart', function(e) {
         lastMidX = getMidpoint(e.touches[0], e.touches[1]).x;
         lastMidY = getMidpoint(e.touches[0], e.touches[1]).y;
     }
-}, { passive: false });
+}, { passive: true });
 
 viewport.addEventListener('touchmove', function(e) {
-    e.preventDefault();
-
-    if (e.touches.length === 1 && activeTouches === 1 && isDragging) {
-        translateX = e.touches[0].clientX - startX;
-        translateY = e.touches[0].clientY - startY;
-        clampBounds();
-        applyTransform();
+    if (e.touches.length === 1 && activeTouches === 1) {
+        const dx = e.touches[0].clientX - touchStartX;
+        const dy = e.touches[0].clientY - touchStartY;
+        if (!isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+            isDragging = true;
+        }
+        if (isDragging) {
+            translateX = e.touches[0].clientX - startX;
+            translateY = e.touches[0].clientY - startY;
+            clampBounds();
+            applyTransform();
+        }
     } else if (e.touches.length === 2) {
         const dist = getDistance(e.touches[0], e.touches[1]);
         const mid = getMidpoint(e.touches[0], e.touches[1]);
 
-        scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, initialScale * (dist / initialPinchDist)));
+        scale = Math.min(MAX_SCALE, Math.max(minScale, initialScale * (dist / initialPinchDist)));
         translateX = initialTranslateX + (mid.x - lastMidX);
         translateY = initialTranslateY + (mid.y - lastMidY);
 
         clampBounds();
         applyTransform();
     }
-}, { passive: false });
+}, { passive: true });
 
 viewport.addEventListener('touchend', function(e) {
     if (e.touches.length < 2) {
         activeTouches = e.touches.length;
         if (e.touches.length === 1) {
-            isDragging = true;
             startX = e.touches[0].clientX - translateX;
             startY = e.touches[0].clientY - translateY;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
         } else {
             isDragging = false;
         }
     }
-}, { passive: false });
+}, { passive: true });
 
 viewport.addEventListener('mousedown', function(e) {
     mouseDown = true;
@@ -183,8 +215,8 @@ window.addEventListener('mouseup', function() {
 
 viewport.addEventListener('wheel', function(e) {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale + delta));
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.min(MAX_SCALE, Math.max(minScale, scale * factor));
 
     const rect = viewport.getBoundingClientRect();
     const mx = e.clientX - rect.left;
@@ -350,15 +382,16 @@ function goToLandmark(id) {
 function focusOnLandmark(landmark) {
     const vw = viewport.offsetWidth;
     const vh = viewport.offsetHeight;
-    const ww = wrapper.offsetWidth;
-    const wh = wrapper.offsetHeight;
+    const img = document.querySelector('#map-transform-wrapper img');
+    const ww = img ? img.naturalWidth || img.offsetWidth : wrapper.offsetWidth;
+    const wh = img ? img.naturalHeight || img.offsetHeight : wrapper.offsetHeight;
 
-    const targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, 1.5));
+    const targetScale = Math.max(minScale, Math.min(MAX_SCALE, 1.5));
     const markerX = (landmark.x / 100) * ww * targetScale;
     const markerY = (landmark.y / 100) * wh * targetScale;
 
     translateX = vw / 2 - markerX;
-    translateY = vh / 2 - markerY + 50;
+    translateY = vh / 2 - markerY;
     scale = targetScale;
 
     clampBounds();
@@ -409,11 +442,36 @@ if (document.readyState === 'complete') {
 }
 
 function init() {
-    centerMap();
+    const img = document.querySelector('#map-transform-wrapper img');
+    function onImageReady() {
+        const iw = img.naturalWidth || img.offsetWidth;
+        const ih = img.naturalHeight || img.offsetHeight;
+        if (iw && ih) {
+            wrapper.style.width = iw + 'px';
+            wrapper.style.height = ih + 'px';
+            markersContainer.style.width = iw + 'px';
+            markersContainer.style.height = ih + 'px';
+        }
+        centerMap();
+    }
+    if (img.complete) {
+        onImageReady();
+    } else {
+        img.addEventListener('load', onImageReady);
+    }
     loadLandmarks();
 }
 
 window.addEventListener('resize', function() {
+    const newMinScale = getMinScale();
+    if (newMinScale !== minScale) {
+        minScale = newMinScale;
+        if (scale < minScale) {
+            scale = minScale;
+            centerMap();
+            return;
+        }
+    }
     clampBounds();
     applyTransform();
 });

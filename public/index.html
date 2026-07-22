@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>社区地图 - 瑞金二路街道便民地图</title>
     <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="https://registry.npmmirror.com/@fortawesome/fontawesome-free/7.3.1/files/css/all.min.css" />
     <style>
         .map-header {
             position: sticky;
@@ -69,15 +69,25 @@
             user-select: none;
             -webkit-user-drag: none;
         }
+        #markers-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            will-change: transform;
+        }
         .landmark-marker {
             position: absolute;
-            transform: translate(-50%, -100%);
+            transform: translate(-50%, -50%) scale(calc(1 / var(--map-scale, 1)));
             z-index: 10;
             cursor: pointer;
             transition: transform 0.15s ease;
+            width: 44px;
+            height: 44px;
+            touch-action: auto;
         }
         .landmark-marker:hover {
-            transform: translate(-50%, -100%) scale(1.1);
+            transform: translate(-50%, -50%) scale(calc(1.1 / var(--map-scale, 1)));
         }
         .landmark-marker .marker-icon {
             width: 44px;
@@ -85,6 +95,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         .landmark-marker .marker-icon-inner {
             width: 36px;
@@ -99,7 +112,10 @@
         }
         .landmark-marker .marker-label {
             text-align: center;
-            margin-top: -4px;
+            position: absolute;
+            top: 44px;
+            left: 50%;
+            transform: translateX(-50%);
         }
         .landmark-marker .marker-label span {
             display: inline-block;
@@ -239,6 +255,7 @@
             flex-direction: column;
             gap: 8px;
             z-index: 20;
+            touch-action: auto;
         }
         .map-control-btn {
             width: 44px;
@@ -247,6 +264,7 @@
             background: white;
             border: none;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            touch-action: auto;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -381,9 +399,9 @@
 
         <div id="map-viewport">
             <div id="map-transform-wrapper">
-                <img src="/assets/community-map-base.png" alt="瑞金二路街道便民地图底图" draggable="false" />
-                <div id="markers-container"></div>
+                <img src="/assets/map.png" alt="瑞金二路街道便民地图底图" draggable="false" />
             </div>
+            <div id="markers-container"></div>
             <div class="map-controls">
                 <button class="map-control-btn" onclick="zoomIn()" aria-label="放大">
                     <i class="fa-solid fa-plus"></i>
