@@ -80,14 +80,16 @@ function clampBounds() {
     const ww = iw * scale;
     const wh = ih * scale;
 
-    const extendedW = ww * (1 + BOUNDARY_BUFFER);
-    const extendedH = wh * (1 + BOUNDARY_BUFFER);
+    const bufferW = ww * BOUNDARY_BUFFER;
+    const bufferH = wh * BOUNDARY_BUFFER;
 
-    const maxPanX = (extendedW - vw) / 2;
-    const maxPanY = (extendedH - vh) / 2;
+    const minTranslateX = vw - ww - bufferW;
+    const maxTranslateX = bufferW;
+    const minTranslateY = vh - wh - bufferH;
+    const maxTranslateY = bufferH;
 
-    translateX = Math.max(-maxPanX, Math.min(maxPanX, translateX));
-    translateY = Math.max(-maxPanY, Math.min(maxPanY, translateY));
+    translateX = Math.max(minTranslateX, Math.min(maxTranslateX, translateX));
+    translateY = Math.max(minTranslateY, Math.min(maxTranslateY, translateY));
 }
 
 
@@ -105,7 +107,6 @@ function centerMap() {
     scale = minScale;
     translateX = (vw - iw * scale) / 2;
     translateY = (vh - ih * scale) / 2;
-    clampBounds();
     applyTransform();
 }
 
@@ -120,12 +121,20 @@ function zoomOut() {
 }
 
 function zoomAtCenter(newScale) {
+    const img = document.querySelector('#map-transform-wrapper img');
+    const iw = img ? img.naturalWidth || img.offsetWidth : 0;
+    const ih = img ? img.naturalHeight || img.offsetHeight : 0;
+    if (!iw || !ih) return;
+
     const rect = viewport.getBoundingClientRect();
     const mx = rect.width / 2;
     const my = rect.height / 2;
-    const ratio = newScale / scale;
-    translateX = mx - ratio * (mx - translateX);
-    translateY = my - ratio * (my - translateY);
+
+    const imgCenterX = (iw * scale) / 2 + translateX;
+    const imgCenterY = (ih * scale) / 2 + translateY;
+
+    translateX = imgCenterX - (iw * newScale) / 2;
+    translateY = imgCenterY - (ih * newScale) / 2;
     scale = newScale;
     clampBounds();
     applyTransform();
@@ -168,9 +177,14 @@ viewport.addEventListener('touchmove', function(e) {
         const dist = getDistance(e.touches[0], e.touches[1]);
         const mid = getMidpoint(e.touches[0], e.touches[1]);
 
+        const rect = viewport.getBoundingClientRect();
+        const mx = mid.x - rect.left;
+        const my = mid.y - rect.top;
+
         scale = Math.min(MAX_SCALE, Math.max(minScale, initialScale * (dist / initialPinchDist)));
-        translateX = initialTranslateX + (mid.x - lastMidX);
-        translateY = initialTranslateY + (mid.y - lastMidY);
+        const ratio = scale / initialScale;
+        translateX = mx - ratio * (mx - initialTranslateX);
+        translateY = my - ratio * (my - initialTranslateY);
 
         clampBounds();
         applyTransform();

@@ -54,6 +54,12 @@
         .landmark-item:hover {
             background: var(--color-neutral-100);
         }
+        .landmark-item.disabled {
+            opacity: 0.5;
+        }
+        .landmark-item.disabled .landmark-icon {
+            filter: grayscale(100%);
+        }
         .landmark-icon {
             color: white;
         }

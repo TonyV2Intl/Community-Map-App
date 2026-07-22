@@ -61,8 +61,10 @@ function renderList() {
         const color = validateColor(landmark.color);
         const escapedName = escapeHtml(landmark.name || '');
         const escapedAddress = escapeHtml(landmark.address || '');
+        const isDisabled = landmark.enabled === false;
+        const disabledClass = isDisabled ? 'disabled' : '';
         return `
-            <div class="landmark-item" data-id="${escapeHtml(landmark.id)}">
+            <div class="landmark-item ${disabledClass}" data-id="${escapeHtml(landmark.id)}">
                 <div class="landmark-icon" style="background: ${color};">
                     <i class="fa-solid ${iconClass}" style="font-size: 12px; color: white;"></i>
                 </div>

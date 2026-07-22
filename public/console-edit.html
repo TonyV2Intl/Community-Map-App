@@ -283,29 +283,16 @@
             border: 3px solid white;
             box-shadow: 0 2px 6px rgba(0,0,0,0.25);
         }
-        .picker-label {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.72);
-            color: white;
-            font-size: 12px;
-            padding: 4px 12px;
-            border-radius: 9999px;
-            white-space: nowrap;
-            pointer-events: none;
-            z-index: 105;
-        }
+
         .pos-picker-footer {
             background: white;
-            padding: 12px 16px;
+            padding: 8px 16px;
             border-top: 1px solid var(--cmap-border);
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            justify-content: flex-start;
+            gap: 16px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
         }
         .pos-picker-controls {
             display: flex;
@@ -328,13 +315,19 @@
         .pos-zoom-btn:hover {
             background: var(--color-neutral-300);
         }
+        .pos-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+        }
         .pos-display {
             font-size: 13px;
             color: var(--color-neutral-500);
-            margin-top: 8px;
             padding: 8px 12px;
             background: var(--cmap-muted);
             border-radius: var(--cmap-radius-md);
+            flex: 1;
         }
         .pick-btn {
             height: 36px;
@@ -362,12 +355,12 @@
             gap: 4px;
         }
         .pos-input-group input {
-            width: 60px;
-            height: 36px;
-            font-size: 13px;
+            width: 50px;
+            height: 30px;
+            font-size: 12px;
             border: 1px solid var(--cmap-input);
-            border-radius: var(--cmap-radius-md);
-            padding: 0 8px;
+            border-radius: var(--cmap-radius-sm);
+            padding: 0 6px;
             outline: none;
             text-align: center;
             font-family: inherit;
@@ -377,7 +370,7 @@
             border-color: var(--cmap-primary);
         }
         .pos-input-group span {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--color-neutral-500);
         }
         .pos-hint {
@@ -648,12 +641,14 @@
 
             <div class="form-card g-section">
                 <label class="g-label">选取位置</label>
-                <button type="button" class="pick-btn" onclick="openPositionPicker()">
-                    <i class="fa-solid fa-crosshairs" style="font-size: 13px;"></i>
-                    选取位置
-                </button>
-                <div id="pos-display" class="pos-display">
-                    <span>位置: X: <span id="pos-x-display">50.0</span>%  Y: <span id="pos-y-display">50.0</span>%</span>
+                <div class="pos-row">
+                    <button type="button" class="pick-btn" onclick="openPositionPicker()">
+                        <i class="fa-solid fa-crosshairs" style="font-size: 13px;"></i>
+                        选取位置
+                    </button>
+                    <div id="pos-display" class="pos-display">
+                        <span>位置: X: <span id="pos-x-display">50.0</span>%  Y: <span id="pos-y-display">50.0</span>%</span>
+                    </div>
                 </div>
             </div>
 
@@ -844,7 +839,6 @@
         <div class="picker-marker" id="picker-marker" style="left: 50%; top: 50%;">
             <div class="picker-marker-dot" id="picker-marker-dot"></div>
         </div>
-        <div class="picker-label" id="picker-label">X: 50.0%  Y: 50.0%</div>
     </div>
 
     <div class="icon-search-modal" id="icon-search-modal">

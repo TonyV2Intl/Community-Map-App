@@ -78,6 +78,8 @@ function fillForm(landmark) {
     }
 
     landmarkEnabled = landmark.enabled !== false;
+    
+    updatePosDisplay();
     document.getElementById('landmark-enabled').checked = landmarkEnabled;
 
     updateTimeDisplay(landmark);
@@ -306,29 +308,38 @@ function clampPickerBounds() {
     
     const ww = iw * pickerScale;
     const wh = ih * pickerScale;
+
+    const BOUNDARY_BUFFER = 0.2;
+    const bufferW = ww * BOUNDARY_BUFFER;
+    const bufferH = wh * BOUNDARY_BUFFER;
     
-    const maxPanX = Math.max(0, (ww - vw) / 2);
-    const maxPanY = Math.max(0, (wh - vh) / 2);
+    const minTranslateX = vw - ww - bufferW;
+    const maxTranslateX = bufferW;
+    const minTranslateY = vh - wh - bufferH;
+    const maxTranslateY = bufferH;
     
-    pickerTranslateX = Math.max(-maxPanX, Math.min(maxPanX, pickerTranslateX));
-    pickerTranslateY = Math.max(-maxPanY, Math.min(maxPanY, pickerTranslateY));
+    pickerTranslateX = Math.max(minTranslateX, Math.min(maxTranslateX, pickerTranslateX));
+    pickerTranslateY = Math.max(minTranslateY, Math.min(maxTranslateY, pickerTranslateY));
 }
 
 function pickerZoomIn() {
     const newScale = pickerScale * 1.25;
     if (newScale > 5) return;
     
-    const viewport = document.getElementById('picker-viewport');
-    const vw = viewport.offsetWidth;
-    const vh = viewport.offsetHeight;
+    const img = document.getElementById('picker-img');
+    const iw = img.naturalWidth || img.offsetWidth;
+    const ih = img.naturalHeight || img.offsetHeight;
     
-    const ratio = newScale / pickerScale;
-    pickerTranslateX = vw / 2 - ratio * (vw / 2 - pickerTranslateX);
-    pickerTranslateY = vh / 2 - ratio * (vh / 2 - pickerTranslateY);
+    const imgCenterX = (iw * pickerScale) / 2 + pickerTranslateX;
+    const imgCenterY = (ih * pickerScale) / 2 + pickerTranslateY;
+    
+    pickerTranslateX = imgCenterX - (iw * newScale) / 2;
+    pickerTranslateY = imgCenterY - (ih * newScale) / 2;
     pickerScale = newScale;
     
     clampPickerBounds();
     applyPickerTransform();
+    syncPickerMarker();
 }
 
 function pickerZoomOut() {
@@ -339,17 +350,20 @@ function pickerZoomOut() {
         return;
     }
     
-    const viewport = document.getElementById('picker-viewport');
-    const vw = viewport.offsetWidth;
-    const vh = viewport.offsetHeight;
+    const img = document.getElementById('picker-img');
+    const iw = img.naturalWidth || img.offsetWidth;
+    const ih = img.naturalHeight || img.offsetHeight;
     
-    const ratio = newScale / pickerScale;
-    pickerTranslateX = vw / 2 - ratio * (vw / 2 - pickerTranslateX);
-    pickerTranslateY = vh / 2 - ratio * (vh / 2 - pickerTranslateY);
+    const imgCenterX = (iw * pickerScale) / 2 + pickerTranslateX;
+    const imgCenterY = (ih * pickerScale) / 2 + pickerTranslateY;
+    
+    pickerTranslateX = imgCenterX - (iw * newScale) / 2;
+    pickerTranslateY = imgCenterY - (ih * newScale) / 2;
     pickerScale = newScale;
     
     clampPickerBounds();
     applyPickerTransform();
+    syncPickerMarker();
 }
 
 function setupPickerDrag() {
@@ -370,6 +384,7 @@ function setupPickerDrag() {
         pickerTranslateY = e.clientY - startY;
         clampPickerBounds();
         applyPickerTransform();
+        syncPickerMarker();
     });
     
     viewport.addEventListener('mouseup', function() {
@@ -392,6 +407,7 @@ function setupPickerDrag() {
         pickerTranslateY = e.touches[0].clientY - startY;
         clampPickerBounds();
         applyPickerTransform();
+        syncPickerMarker();
     }, { passive: true });
     
     viewport.addEventListener('touchend', function() {
@@ -403,13 +419,26 @@ function syncPositionFromInput() {
     syncPickerMarker();
 }
 
+function updatePosDisplay() {
+    const x = parseFloat(document.getElementById('pos-x').value) || 0;
+    const y = parseFloat(document.getElementById('pos-y').value) || 0;
+    const xDisplay = document.getElementById('pos-x-display');
+    const yDisplay = document.getElementById('pos-y-display');
+    if (xDisplay) xDisplay.textContent = x.toFixed(1);
+    if (yDisplay) yDisplay.textContent = y.toFixed(1);
+}
+
 function syncPickerMarker() {
+    updatePosDisplay();
+    
+    const overlay = document.getElementById('pos-picker');
+    if (!overlay || !overlay.classList.contains('show')) {
+        return;
+    }
+
     const x = parseFloat(document.getElementById('pos-x').value) || 0;
     const y = parseFloat(document.getElementById('pos-y').value) || 0;
     const marker = document.getElementById('picker-marker');
-    const label = document.getElementById('picker-label');
-    const xDisplay = document.getElementById('pos-x-display');
-    const yDisplay = document.getElementById('pos-y-display');
 
     const img = document.getElementById('picker-img');
     const viewport = document.getElementById('picker-viewport');
@@ -422,10 +451,6 @@ function syncPickerMarker() {
 
     marker.style.left = markerX + 'px';
     marker.style.top = markerY + 'px';
-    label.textContent = `X: ${x.toFixed(1)}%  Y: ${y.toFixed(1)}%`;
-
-    if (xDisplay) xDisplay.textContent = x.toFixed(1);
-    if (yDisplay) yDisplay.textContent = y.toFixed(1);
 }
 
 async function saveLandmark() {
