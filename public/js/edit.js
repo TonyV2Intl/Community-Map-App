@@ -235,7 +235,23 @@ function previewImage() {
         return;
     }
     
-    body.innerHTML = '<div class="loading-state"><i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: white;"></i></div>';
+    // 验证URL是否为有效的图片URL
+    if (!/^https?:\/\//i.test(url)) {
+        showToast('请输入有效的图片URL');
+        return;
+    }
+    
+    // 使用 createElement 替代 innerHTML 创建加载状态
+    body.innerHTML = '';
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-state';
+    const spinner = document.createElement('i');
+    spinner.className = 'fa-solid fa-spinner fa-spin';
+    spinner.style.fontSize = '24px';
+    spinner.style.color = 'white';
+    loadingDiv.appendChild(spinner);
+    body.appendChild(loadingDiv);
+    
     modal.classList.add('show');
     
     const img = document.createElement('img');
@@ -246,7 +262,11 @@ function previewImage() {
         body.appendChild(img);
     };
     img.onerror = function() {
-        body.innerHTML = '<div class="placeholder">图片加载失败</div>';
+        body.innerHTML = '';
+        const placeholder = document.createElement('div');
+        placeholder.className = 'placeholder';
+        placeholder.textContent = '图片加载失败';
+        body.appendChild(placeholder);
     };
 }
 
@@ -582,7 +602,9 @@ function renderIconGrid(icons) {
     icons.forEach(icon => {
         const btn = document.createElement('button');
         const className = icon.prefix === 'brands' ? `fa-brands fa-${icon.name}` : `fa-solid fa-${icon.name}`;
-        btn.innerHTML = `<i class="${className}"></i>`;
+        const iconEl = document.createElement('i');
+        iconEl.className = className;
+        btn.appendChild(iconEl);
         btn.title = icon.name;
         btn.setAttribute('data-icon-name', icon.name);
         if (`fa-${icon.name}` === selectedIcon) {

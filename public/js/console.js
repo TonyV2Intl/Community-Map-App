@@ -43,11 +43,18 @@ function renderList() {
             emptyEl = document.createElement('div');
             emptyEl.className = 'empty-state';
             emptyEl.id = 'empty-state';
-            emptyEl.innerHTML = `<i class="fa-regular ${iconClass}" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i><p>${message}</p>`;
             listEl.appendChild(emptyEl);
-        } else {
-            emptyEl.innerHTML = `<i class="fa-regular ${iconClass}" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i><p>${message}</p>`;
         }
+        emptyEl.innerHTML = '';
+        const icon = document.createElement('i');
+        icon.className = `fa-regular ${iconClass}`;
+        icon.style.fontSize = '48px';
+        icon.style.marginBottom = '12px';
+        icon.style.opacity = '0.5';
+        emptyEl.appendChild(icon);
+        const p = document.createElement('p');
+        p.textContent = message;
+        emptyEl.appendChild(p);
         emptyEl.style.display = 'flex';
         return;
     }
@@ -56,33 +63,73 @@ function renderList() {
         emptyEl.style.display = 'none';
     }
     
-    const itemsHtml = data.map(landmark => {
+    listEl.innerHTML = '';
+    
+    data.forEach(landmark => {
         const iconClass = getIconClass(landmark.icon);
         const color = validateColor(landmark.color);
-        const escapedName = escapeHtml(landmark.name || '');
-        const escapedAddress = escapeHtml(landmark.address || '');
         const isDisabled = landmark.enabled === false;
-        const disabledClass = isDisabled ? 'disabled' : '';
-        return `
-            <div class="landmark-item ${disabledClass}" data-id="${escapeHtml(landmark.id)}">
-                <div class="landmark-icon" style="background: ${color};">
-                    <i class="fa-solid ${iconClass}" style="font-size: 12px; color: white;"></i>
-                </div>
-                <div class="landmark-info" data-id="${escapeHtml(landmark.id)}">
-                    <div class="landmark-name">${escapedName}</div>
-                    <div class="landmark-address">${escapedAddress}</div>
-                </div>
-                <div class="landmark-actions">
-                    <button type="button" class="edit-btn" data-id="${escapeHtml(landmark.id)}">编辑</button>
-                    <button type="button" class="delete-btn" aria-label="删除" data-id="${escapeHtml(landmark.id)}" data-name="${escapedName}">
-                        <i class="fa-regular fa-trash-can" style="font-size: 14px;"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
+        
+        const item = document.createElement('div');
+        item.className = 'landmark-item' + (isDisabled ? ' disabled' : '');
+        item.setAttribute('data-id', landmark.id);
+        
+        // landmark-icon
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'landmark-icon';
+        iconDiv.style.background = color;
+        const icon = document.createElement('i');
+        icon.className = `fa-solid ${iconClass}`;
+        icon.style.fontSize = '12px';
+        icon.style.color = 'white';
+        iconDiv.appendChild(icon);
+        item.appendChild(iconDiv);
+        
+        // landmark-info
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'landmark-info';
+        infoDiv.setAttribute('data-id', landmark.id);
+        
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'landmark-name';
+        nameDiv.textContent = landmark.name || '';
+        infoDiv.appendChild(nameDiv);
+        
+        const addressDiv = document.createElement('div');
+        addressDiv.className = 'landmark-address';
+        addressDiv.textContent = landmark.address || '';
+        infoDiv.appendChild(addressDiv);
+        
+        item.appendChild(infoDiv);
+        
+        // landmark-actions
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'landmark-actions';
+        
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'edit-btn';
+        editBtn.setAttribute('data-id', landmark.id);
+        editBtn.textContent = '编辑';
+        actionsDiv.appendChild(editBtn);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.setAttribute('aria-label', '删除');
+        deleteBtn.setAttribute('data-id', landmark.id);
+        deleteBtn.setAttribute('data-name', landmark.name || '');
+        const deleteIcon = document.createElement('i');
+        deleteIcon.className = 'fa-regular fa-trash-can';
+        deleteIcon.style.fontSize = '14px';
+        deleteBtn.appendChild(deleteIcon);
+        actionsDiv.appendChild(deleteBtn);
+        
+        item.appendChild(actionsDiv);
+        
+        listEl.appendChild(item);
+    });
 
-    listEl.innerHTML = itemsHtml;
     updateStats();
 }
 
@@ -307,7 +354,20 @@ async function viewKvRaw() {
     const modal = document.getElementById('kv-modal');
     const body = document.getElementById('kv-modal-body');
     
-    body.innerHTML = '<div class="loading-state"><i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: var(--cmap-primary);"></i><p>加载中...</p></div>';
+    // 创建加载状态
+    body.innerHTML = '';
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-state';
+    const spinner = document.createElement('i');
+    spinner.className = 'fa-solid fa-spinner fa-spin';
+    spinner.style.fontSize = '24px';
+    spinner.style.color = 'var(--cmap-primary)';
+    loadingDiv.appendChild(spinner);
+    const loadingP = document.createElement('p');
+    loadingP.textContent = '加载中...';
+    loadingDiv.appendChild(loadingP);
+    body.appendChild(loadingDiv);
+    
     modal.classList.add('show');
     
     try {
@@ -315,19 +375,58 @@ async function viewKvRaw() {
         const data = await res.json();
         
         if (data.error) {
-            body.innerHTML = `<div class="empty-kv"><i class="fa-solid fa-exclamation-circle" style="font-size: 32px; margin-bottom: 8px; opacity: 0.5;"></i><p>${data.error}</p></div>`;
+            body.innerHTML = '';
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'empty-kv';
+            const errorIcon = document.createElement('i');
+            errorIcon.className = 'fa-solid fa-exclamation-circle';
+            errorIcon.style.fontSize = '32px';
+            errorIcon.style.marginBottom = '8px';
+            errorIcon.style.opacity = '0.5';
+            errorDiv.appendChild(errorIcon);
+            const errorP = document.createElement('p');
+            errorP.textContent = data.error;
+            errorDiv.appendChild(errorP);
+            body.appendChild(errorDiv);
             return;
         }
         
         if (!data.exists || !data.raw) {
-            body.innerHTML = `<div class="empty-kv"><i class="fa-solid fa-database" style="font-size: 32px; margin-bottom: 8px; opacity: 0.5;"></i><p>KV 值为空</p></div>`;
+            body.innerHTML = '';
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'empty-kv';
+            const emptyIcon = document.createElement('i');
+            emptyIcon.className = 'fa-solid fa-database';
+            emptyIcon.style.fontSize = '32px';
+            emptyIcon.style.marginBottom = '8px';
+            emptyIcon.style.opacity = '0.5';
+            emptyDiv.appendChild(emptyIcon);
+            const emptyP = document.createElement('p');
+            emptyP.textContent = 'KV 值为空';
+            emptyDiv.appendChild(emptyP);
+            body.appendChild(emptyDiv);
             return;
         }
         
-        body.innerHTML = `<pre>${escapeHtml(data.raw)}</pre>`;
+        body.innerHTML = '';
+        const pre = document.createElement('pre');
+        pre.textContent = data.raw;
+        body.appendChild(pre);
     } catch (e) {
         console.error('获取KV失败:', e);
-        body.innerHTML = `<div class="empty-kv"><i class="fa-solid fa-exclamation-circle" style="font-size: 32px; margin-bottom: 8px; opacity: 0.5;"></i><p>获取失败: ${e.message}</p></div>`;
+        body.innerHTML = '';
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'empty-kv';
+        const errorIcon = document.createElement('i');
+        errorIcon.className = 'fa-solid fa-exclamation-circle';
+        errorIcon.style.fontSize = '32px';
+        errorIcon.style.marginBottom = '8px';
+        errorIcon.style.opacity = '0.5';
+        errorDiv.appendChild(errorIcon);
+        const errorP = document.createElement('p');
+        errorP.textContent = '获取失败: ' + e.message;
+        errorDiv.appendChild(errorP);
+        body.appendChild(errorDiv);
     }
 }
 

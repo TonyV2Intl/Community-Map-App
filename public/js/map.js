@@ -280,18 +280,27 @@ function renderMarkers() {
 
         const iconClass = getIconClass(landmark.icon);
         const color = validateColor(landmark.color);
-        const escapedName = escapeHtml(landmark.name || '');
 
-        marker.innerHTML = `
-            <div class="marker-icon">
-                <div class="marker-icon-inner" style="background: ${color};">
-                    <i class="fa-solid ${iconClass}" style="font-size: 16px;"></i>
-                </div>
-            </div>
-            <div class="marker-label">
-                <span>${escapedName}</span>
-            </div>
-        `;
+        // 创建marker内容
+        const markerIcon = document.createElement('div');
+        markerIcon.className = 'marker-icon';
+        const markerIconInner = document.createElement('div');
+        markerIconInner.className = 'marker-icon-inner';
+        markerIconInner.style.background = color;
+        const icon = document.createElement('i');
+        icon.className = `fa-solid ${iconClass}`;
+        icon.style.fontSize = '16px';
+        markerIconInner.appendChild(icon);
+        markerIcon.appendChild(markerIconInner);
+
+        const markerLabel = document.createElement('div');
+        markerLabel.className = 'marker-label';
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = landmark.name || '';
+        markerLabel.appendChild(labelSpan);
+
+        marker.appendChild(markerIcon);
+        marker.appendChild(markerLabel);
 
         marker.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -312,14 +321,17 @@ function openDetail(id) {
     document.getElementById('detail-address').textContent = landmark.address || '';
 
     const imageEl = document.getElementById('detail-image');
+    imageEl.innerHTML = '';
     if (landmark.imageUrl) {
         const img = document.createElement('img');
         img.src = landmark.imageUrl;
         img.alt = landmark.name || '';
-        imageEl.innerHTML = '';
         imageEl.appendChild(img);
     } else {
-        imageEl.innerHTML = '<i class="fa-regular fa-image detail-image-placeholder" style="font-size: 40px;"></i>';
+        const placeholder = document.createElement('i');
+        placeholder.className = 'fa-regular fa-image detail-image-placeholder';
+        placeholder.style.fontSize = '40px';
+        imageEl.appendChild(placeholder);
     }
 
     document.getElementById('detail-modal').classList.add('show');
@@ -380,34 +392,64 @@ function renderMenuItems(filterText = '') {
     
     if (enabledLandmarks.length === 0) {
         const message = filterText ? '未找到匹配的地标' : '暂无地标';
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fa-solid fa-map-marker" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
-                <p>${message}</p>
-            </div>
-        `;
+        container.innerHTML = '';
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-state';
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-map-marker';
+        icon.style.fontSize = '48px';
+        icon.style.marginBottom = '12px';
+        icon.style.opacity = '0.5';
+        emptyDiv.appendChild(icon);
+        const p = document.createElement('p');
+        p.textContent = message;
+        emptyDiv.appendChild(p);
+        container.appendChild(emptyDiv);
         return;
     }
     
-    container.innerHTML = enabledLandmarks.map(landmark => {
+    container.innerHTML = '';
+    enabledLandmarks.forEach(landmark => {
         const iconClass = getIconClass(landmark.icon);
         const color = validateColor(landmark.color);
-        const escapedId = escapeHtml(landmark.id);
-        const escapedName = escapeHtml(landmark.name || '');
-        const escapedAddress = escapeHtml(landmark.address || '');
-        return `
-            <div class="menu-item" data-id="${escapedId}" onclick="handleMenuClick('${escapedId}')">
-                <div class="menu-item-icon" style="background: ${color};">
-                    <i class="fa-solid ${iconClass}" style="font-size: 14px;"></i>
-                </div>
-                <div class="menu-item-info">
-                    <div class="menu-item-name">${escapedName}</div>
-                    <div class="menu-item-address">${escapedAddress}</div>
-                </div>
-                <i class="fa-solid fa-chevron-right menu-item-arrow"></i>
-            </div>
-        `;
-    }).join('');
+        
+        const item = document.createElement('div');
+        item.className = 'menu-item';
+        item.setAttribute('data-id', landmark.id);
+        item.onclick = function() {
+            handleMenuClick(landmark.id);
+        };
+        
+        const itemIcon = document.createElement('div');
+        itemIcon.className = 'menu-item-icon';
+        itemIcon.style.background = color;
+        const icon = document.createElement('i');
+        icon.className = `fa-solid ${iconClass}`;
+        icon.style.fontSize = '14px';
+        itemIcon.appendChild(icon);
+        item.appendChild(itemIcon);
+        
+        const itemInfo = document.createElement('div');
+        itemInfo.className = 'menu-item-info';
+        
+        const itemName = document.createElement('div');
+        itemName.className = 'menu-item-name';
+        itemName.textContent = landmark.name || '';
+        itemInfo.appendChild(itemName);
+        
+        const itemAddress = document.createElement('div');
+        itemAddress.className = 'menu-item-address';
+        itemAddress.textContent = landmark.address || '';
+        itemInfo.appendChild(itemAddress);
+        
+        item.appendChild(itemInfo);
+        
+        const arrow = document.createElement('i');
+        arrow.className = 'fa-solid fa-chevron-right menu-item-arrow';
+        item.appendChild(arrow);
+        
+        container.appendChild(item);
+    });
 }
 
 function handleMenuClick(id) {
