@@ -47,6 +47,23 @@ export async function onRequest(context) {
         });
       }
     }
+    
+    if (path.startsWith('/api/kv-debug') && method === 'GET') {
+      const token = await getAuthToken(request);
+      const isAuthenticated = await verifyToken(env, token);
+      
+      if (!isAuthenticated) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
+        });
+      }
+    }
   }
 
   if (path === '/console' || path === '/console/') {

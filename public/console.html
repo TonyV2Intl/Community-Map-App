@@ -169,6 +169,121 @@
         #import-file {
             display: none;
         }
+        .kv-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+        .kv-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .kv-modal-box {
+            background: white;
+            border-radius: var(--cmap-radius-lg);
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.9);
+            transition: transform 0.2s;
+        }
+        .kv-modal.show .kv-modal-box {
+            transform: scale(1);
+        }
+        .kv-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border-bottom: 1px solid var(--cmap-border);
+        }
+        .kv-modal-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--cmap-foreground);
+        }
+        .kv-modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--cmap-muted);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--cmap-foreground);
+        }
+        .kv-modal-body {
+            flex: 1;
+            padding: 16px;
+            overflow: auto;
+        }
+        .kv-modal-body pre {
+            margin: 0;
+            padding: 12px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: var(--cmap-radius-md);
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .kv-modal-body .empty-kv {
+            text-align: center;
+            color: var(--cmap-muted-foreground);
+            padding: 20px;
+        }
+        .kv-modal-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--cmap-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .kv-copy-btn {
+            padding: 6px 12px;
+            border-radius: var(--cmap-radius-md);
+            background: var(--cmap-primary);
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .kv-copy-btn:hover {
+            opacity: 0.9;
+        }
+        .kv-close-btn {
+            padding: 6px 12px;
+            border-radius: var(--cmap-radius-md);
+            background: var(--cmap-muted);
+            color: var(--cmap-foreground);
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
     </style>
 </head>
 <body>
@@ -182,6 +297,10 @@
                     <h1>地标管理</h1>
                 </div>
                 <div class="header-actions">
+                    <button type="button" class="action-btn" aria-label="查看KV" onclick="viewKvRaw()">
+                        <i class="fa-solid fa-database" style="font-size: 14px;"></i>
+                        <span>KV</span>
+                    </button>
                     <button type="button" class="action-btn" aria-label="导出数据" onclick="exportData()">
                         <i class="fa-solid fa-download" style="font-size: 14px;"></i>
                         <span>导出</span>
@@ -252,6 +371,25 @@
     </div>
 
     <input type="file" id="import-file" accept=".json" onchange="handleImportFile(this)" />
+
+    <div class="kv-modal" id="kv-modal">
+        <div class="kv-modal-box">
+            <div class="kv-modal-header">
+                <h3>原始 KV 值</h3>
+                <button class="kv-modal-close" onclick="closeKvModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="kv-modal-body" id="kv-modal-body"></div>
+            <div class="kv-modal-footer">
+                <button class="kv-copy-btn" onclick="copyKvValue()">
+                    <i class="fa-solid fa-copy"></i>
+                    复制
+                </button>
+                <button class="kv-close-btn" onclick="closeKvModal()">关闭</button>
+            </div>
+        </div>
+    </div>
 
     <script src="/js/utils.js"></script>
     <script src="/js/console.js"></script>

@@ -14,7 +14,7 @@
             background: var(--color-neutral-100);
         }
         .edit-main {
-            padding-bottom: calc(80px + env(safe-area-inset-bottom));
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
         }
         .form-card {
             background: white;
@@ -28,25 +28,134 @@
             flex: 1;
             min-width: 0;
         }
-        .image-preview {
-            width: 100%;
-            height: 120px;
-            background: var(--cmap-muted);
+        .image-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .image-input-row .g-field {
+            flex: 1;
+            min-width: 0;
+        }
+        .preview-img-btn {
+            width: 36px;
+            height: 36px;
             border-radius: var(--cmap-radius-md);
-            margin-top: 8px;
+            background: var(--cmap-muted);
+            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--cmap-foreground);
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .preview-img-btn:hover {
+            background: var(--color-neutral-300);
+        }
+        .preview-img-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .preview-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.6);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+        .preview-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .preview-modal-box {
+            background: black;
+            border-radius: var(--cmap-radius-lg);
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.2s;
         }
-        .image-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .preview-modal.show .preview-modal-box {
+            transform: scale(1);
         }
-        .image-preview-placeholder {
-            color: var(--color-neutral-400);
-            font-size: 32px;
+        .preview-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.1);
+        }
+        .preview-modal-header h3 {
+            font-size: 14px;
+            font-weight: 500;
+            margin: 0;
+            color: white;
+        }
+        .preview-modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: white;
+        }
+        .preview-modal-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            overflow: auto;
+        }
+        .preview-modal-body img {
+            max-width: 100%;
+            max-height: 60vh;
+            object-fit: contain;
+            border-radius: var(--cmap-radius-md);
+        }
+        .preview-modal-body .placeholder {
+            color: rgba(255,255,255,0.5);
+            font-size: 14px;
+            text-align: center;
+        }
+        .time-info {
+            margin-top: 8px;
+        }
+        .time-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--cmap-border);
+        }
+        .time-row:last-child {
+            border-bottom: none;
+        }
+        .time-label {
+            font-size: 13px;
+            color: var(--cmap-muted-foreground);
+        }
+        .time-value {
+            font-size: 13px;
+            color: var(--cmap-foreground);
+            font-family: monospace;
         }
         textarea.g-field {
             height: auto;
@@ -139,29 +248,32 @@
         }
         .pos-picker-body {
             flex: 1;
-            overflow: auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12px;
-        }
-        .pos-picker-img-wrap {
+            overflow: hidden;
             position: relative;
-            display: inline-block;
-            max-width: 100%;
-            cursor: crosshair;
         }
-        .pos-picker-img-wrap img {
+        .pos-picker-viewport {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none;
+            cursor: grab;
+        }
+        .pos-picker-viewport:active {
+            cursor: grabbing;
+        }
+        .pos-picker-transform {
+            transform-origin: 0 0;
+            position: relative;
+        }
+        .pos-picker-transform img {
             display: block;
-            max-width: 100%;
-            height: auto;
             pointer-events: none;
         }
         .picker-marker {
-            position: absolute;
+            position: fixed;
             transform: translate(-50%, -50%);
             pointer-events: none;
-            z-index: 5;
+            z-index: 105;
         }
         .picker-marker-dot {
             width: 28px;
@@ -172,8 +284,8 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.25);
         }
         .picker-label {
-            position: absolute;
-            bottom: 8px;
+            position: fixed;
+            bottom: 80px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.72);
@@ -183,6 +295,46 @@
             border-radius: 9999px;
             white-space: nowrap;
             pointer-events: none;
+            z-index: 105;
+        }
+        .pos-picker-footer {
+            background: white;
+            padding: 12px 16px;
+            border-top: 1px solid var(--cmap-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+        }
+        .pos-picker-controls {
+            display: flex;
+            gap: 6px;
+        }
+        .pos-zoom-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--cmap-muted);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--cmap-foreground);
+            transition: background 0.15s;
+        }
+        .pos-zoom-btn:hover {
+            background: var(--color-neutral-300);
+        }
+        .pos-display {
+            font-size: 13px;
+            color: var(--color-neutral-500);
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: var(--cmap-muted);
+            border-radius: var(--cmap-radius-md);
         }
         .pick-btn {
             height: 36px;
@@ -290,6 +442,184 @@
         .toggle-switch input:checked + .toggle-slider:before {
             transform: translateX(22px);
         }
+        .icon-search-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .icon-search-modal.show {
+            display: flex;
+        }
+        .icon-search-modal-box {
+            background: white;
+            border-radius: var(--cmap-radius-lg);
+            width: 100%;
+            max-width: 420px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .icon-search-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--cmap-border);
+        }
+        .icon-search-header h3 {
+            font-size: 15px;
+            font-weight: 500;
+            margin: 0;
+            color: var(--cmap-foreground);
+        }
+        .icon-search-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--cmap-muted);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--cmap-foreground);
+        }
+        .icon-search-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: var(--cmap-muted);
+            margin: 8px 12px;
+            border-radius: var(--cmap-radius-md);
+        }
+        .icon-search-input-wrapper i {
+            font-size: 14px;
+            color: var(--cmap-muted-foreground);
+        }
+        .icon-search-input-wrapper input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+            color: var(--cmap-foreground);
+        }
+        .icon-search-input-wrapper input::placeholder {
+            color: var(--cmap-muted-foreground);
+        }
+        .icon-search-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            padding: 8px 12px;
+            overflow-y: auto;
+            max-height: 50vh;
+        }
+        .icon-search-grid button {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 1px solid var(--cmap-border);
+            border-radius: var(--cmap-radius-sm);
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--cmap-foreground);
+            transition: background 0.1s, border-color 0.1s;
+        }
+        .icon-search-grid button:hover {
+            background: var(--cmap-muted);
+            border-color: var(--cmap-primary);
+        }
+        .icon-search-grid button.selected {
+            background: var(--cmap-primary);
+            border-color: var(--cmap-primary);
+            color: white;
+        }
+        .icon-opt {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--cmap-border);
+            border-radius: var(--cmap-radius-sm);
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--cmap-foreground);
+            transition: background 0.1s, border-color 0.1s;
+            flex-shrink: 0;
+        }
+        .icon-opt:hover {
+            background: var(--cmap-muted);
+            border-color: var(--cmap-primary);
+        }
+        .icon-opt.active {
+            background: var(--cmap-primary);
+            border-color: var(--cmap-primary);
+            color: white;
+        }
+        .more-icon-btn {
+            border-style: dashed;
+            color: var(--cmap-muted-foreground);
+        }
+        .more-icon-btn:hover {
+            color: var(--cmap-primary);
+        }
+        .clr-opt {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        .clr-opt:hover {
+            transform: scale(1.15);
+        }
+        .clr-opt.active {
+            border-color: var(--cmap-foreground);
+            transform: scale(1.15);
+        }
+        .rgb-input-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .rgb-input-group input {
+            width: 50px;
+            height: 32px;
+            font-size: 12px;
+            border: 1px solid var(--cmap-input);
+            border-radius: var(--cmap-radius-sm);
+            padding: 0 6px;
+            outline: none;
+            text-align: center;
+            font-family: inherit;
+            color: var(--cmap-foreground);
+        }
+        .rgb-input-group input:focus {
+            border-color: var(--cmap-primary);
+        }
+        .rgb-input-group span {
+            font-size: 11px;
+            color: var(--color-neutral-500);
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -318,28 +648,22 @@
 
             <div class="form-card g-section">
                 <label class="g-label">选取位置</label>
-                <div class="g-btn-row">
-                    <button type="button" class="pick-btn" onclick="openPositionPicker()">
-                        <i class="fa-solid fa-crosshairs" style="font-size: 13px;"></i>
-                        选取位置
-                    </button>
-                    <div class="pos-input-group">
-                        <input type="number" id="pos-x" value="50" min="0" max="100" step="0.1" oninput="syncPositionFromInput()" />
-                        <span>% X</span>
-                    </div>
-                    <div class="pos-input-group">
-                        <input type="number" id="pos-y" value="50" min="0" max="100" step="0.1" oninput="syncPositionFromInput()" />
-                        <span>% Y</span>
-                    </div>
+                <button type="button" class="pick-btn" onclick="openPositionPicker()">
+                    <i class="fa-solid fa-crosshairs" style="font-size: 13px;"></i>
+                    选取位置
+                </button>
+                <div id="pos-display" class="pos-display">
+                    <span>位置: X: <span id="pos-x-display">50.0</span>%  Y: <span id="pos-y-display">50.0</span>%</span>
                 </div>
-                <p class="pos-hint">坐标为图片上的百分比位置 (0-100)</p>
             </div>
 
             <div class="form-card g-section">
                 <label class="g-label">图片链接</label>
-                <input class="g-field" type="text" id="landmark-image" placeholder="输入图片URL..." oninput="updateImagePreview()" />
-                <div class="image-preview" id="image-preview">
-                    <i class="fa-regular fa-image image-preview-placeholder"></i>
+                <div class="image-input-row">
+                    <input class="g-field" type="text" id="landmark-image" placeholder="输入图片URL..." />
+                    <button type="button" class="preview-img-btn" onclick="previewImage()" aria-label="预览图片">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
                 </div>
             </div>
 
@@ -357,6 +681,20 @@
                     </label>
                 </div>
                 <p style="font-size: 12px; color: var(--color-neutral-500); margin-top: 4px;">关闭后地标将不在地图上显示</p>
+            </div>
+
+            <div class="form-card g-section">
+                <label class="g-label">时间信息</label>
+                <div class="time-info">
+                    <div class="time-row">
+                        <span class="time-label">创建时间</span>
+                        <span class="time-value" id="time-created">-</span>
+                    </div>
+                    <div class="time-row">
+                        <span class="time-label">修改时间</span>
+                        <span class="time-value" id="time-updated">-</span>
+                    </div>
+                </div>
             </div>
 
             <div class="form-card g-section">
@@ -418,6 +756,9 @@
                     <button type="button" class="icon-opt" data-icon="fa-monument" onclick="selectIcon(this)">
                         <i class="fa-solid fa-monument"></i>
                     </button>
+                    <button type="button" class="icon-opt more-icon-btn" onclick="openIconSearchModal()">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </button>
                 </div>
 
                 <div style="margin-top: 16px;">
@@ -435,13 +776,38 @@
                             <input type="color" id="custom-color" value="#4285f4" title="自定义颜色" oninput="selectCustomColor(this.value)" />
                         </div>
                     </div>
+                    <div class="rgb-input-row" style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
+                        <div class="rgb-input-group">
+                            <input type="number" id="rgb-r" min="0" max="255" value="66" oninput="updateColorFromRGB()" />
+                            <span>R</span>
+                        </div>
+                        <div class="rgb-input-group">
+                            <input type="number" id="rgb-g" min="0" max="255" value="133" oninput="updateColorFromRGB()" />
+                            <span>G</span>
+                        </div>
+                        <div class="rgb-input-group">
+                            <input type="number" id="rgb-b" min="0" max="255" value="244" oninput="updateColorFromRGB()" />
+                            <span>B</span>
+                        </div>
+                        <span id="hex-display" style="font-size: 12px; color: var(--cmap-muted-foreground); font-family: monospace;">#4285F4</span>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <div class="bottom-save-bar">
-        <button type="button" onclick="saveLandmark()">保存</button>
+    <div class="preview-modal" id="preview-modal">
+        <div class="preview-modal-box">
+            <div class="preview-modal-header">
+                <h3>图片预览</h3>
+                <button class="preview-modal-close" onclick="closePreviewModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="preview-modal-body" id="preview-modal-body">
+                <div class="placeholder">请输入图片URL后预览</div>
+            </div>
+        </div>
     </div>
 
     <div class="pos-picker-overlay" id="pos-picker">
@@ -451,17 +817,54 @@
             <button class="pos-picker-done" onclick="closePositionPicker()">完成</button>
         </div>
         <div class="pos-picker-body">
-            <div class="pos-picker-img-wrap" id="picker-img-wrap">
-                <img id="picker-img" src="/assets/map.png" alt="地图底图" />
-                <div class="picker-marker" id="picker-marker" style="left: 50%; top: 50%;">
-                    <div class="picker-marker-dot" id="picker-marker-dot"></div>
+            <div class="pos-picker-viewport" id="picker-viewport">
+                <div class="pos-picker-transform" id="picker-transform">
+                    <img id="picker-img" src="/assets/map.png" alt="地图底图" />
                 </div>
-                <div class="picker-label" id="picker-label">X: 50.0%  Y: 50.0%</div>
             </div>
+        </div>
+        <div class="pos-picker-footer">
+            <div class="pos-input-group">
+                <input type="number" id="pos-x" value="50" min="0" max="100" step="0.1" oninput="syncPositionFromInput()" />
+                <span>% X</span>
+            </div>
+            <div class="pos-input-group">
+                <input type="number" id="pos-y" value="50" min="0" max="100" step="0.1" oninput="syncPositionFromInput()" />
+                <span>% Y</span>
+            </div>
+            <div class="pos-picker-controls">
+                <button type="button" class="pos-zoom-btn" onclick="pickerZoomIn()">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+                <button type="button" class="pos-zoom-btn" onclick="pickerZoomOut()">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="picker-marker" id="picker-marker" style="left: 50%; top: 50%;">
+            <div class="picker-marker-dot" id="picker-marker-dot"></div>
+        </div>
+        <div class="picker-label" id="picker-label">X: 50.0%  Y: 50.0%</div>
+    </div>
+
+    <div class="icon-search-modal" id="icon-search-modal">
+        <div class="icon-search-modal-box">
+            <div class="icon-search-header">
+                <h3>选择图标</h3>
+                <button class="icon-search-close" onclick="closeIconSearchModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="icon-search-input-wrapper">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" id="icon-search-input" placeholder="搜索图标名称..." oninput="filterIcons()" />
+            </div>
+            <div class="icon-search-grid" id="icon-search-grid"></div>
         </div>
     </div>
 
     <script src="/js/utils.js"></script>
+    <script src="/js/icons.js"></script>
     <script src="/js/edit.js"></script>
 </body>
 </html>

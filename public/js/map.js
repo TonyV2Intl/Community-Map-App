@@ -282,6 +282,7 @@ function renderMarkers() {
         marker.addEventListener('click', function(e) {
             e.stopPropagation();
             openDetail(landmark.id);
+            focusOnLandmark(landmark);
         });
 
         markersContainer.appendChild(marker);
@@ -316,62 +317,7 @@ function closeDetail() {
     document.body.style.overflow = '';
 }
 
-function toggleSearch() {
-    const overlay = document.getElementById('search-overlay');
-    overlay.classList.toggle('show');
-    if (overlay.classList.contains('show')) {
-        document.getElementById('search-input').focus();
-    } else {
-        document.getElementById('search-input').value = '';
-        document.getElementById('search-results').innerHTML = '';
-    }
-}
-
-function handleSearch(query) {
-    const resultsContainer = document.getElementById('search-results');
-    if (!query.trim()) {
-        resultsContainer.innerHTML = '';
-        return;
-    }
-
-    const results = landmarks.filter(l =>
-        l.name.toLowerCase().includes(query.toLowerCase()) ||
-        (l.address && l.address.toLowerCase().includes(query.toLowerCase()))
-    );
-
-    if (results.length === 0) {
-        resultsContainer.innerHTML = `
-            <div class="empty-state">
-                <i class="fa-solid fa-magnifying-glass" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
-                <p>未找到相关地标</p>
-            </div>
-        `;
-        return;
-    }
-
-    resultsContainer.innerHTML = results.map(landmark => {
-        const iconClass = getIconClass(landmark.icon);
-        const color = validateColor(landmark.color);
-        const escapedId = escapeHtml(landmark.id);
-        const escapedName = escapeHtml(landmark.name || '');
-        const escapedAddress = escapeHtml(landmark.address || '');
-        return `
-            <div class="search-result-item" data-id="${escapedId}">
-                <div class="search-result-icon" style="background: ${color};">
-                    <i class="fa-solid ${iconClass}" style="font-size: 14px;"></i>
-                </div>
-                <div class="search-result-info">
-                    <div class="search-result-name">${escapedName}</div>
-                    <div class="search-result-addr">${escapedAddress}</div>
-                </div>
-                <i class="fa-solid fa-chevron-right" style="color: var(--cmap-muted-foreground); font-size: 14px;"></i>
-            </div>
-        `;
-    }).join('');
-}
-
 function goToLandmark(id) {
-    toggleSearch();
     const landmark = landmarks.find(l => l.id === id);
     if (landmark) {
         openDetail(id);
@@ -399,7 +345,66 @@ function focusOnLandmark(landmark) {
 }
 
 function toggleMenu() {
-    showToast('菜单功能开发中');
+    const overlay = document.getElementById('menu-overlay');
+    overlay.classList.toggle('show');
+    if (overlay.classList.contains('show')) {
+        document.getElementById('menu-search-input').value = '';
+        renderMenuItems();
+    }
+}
+
+function renderMenuItems(filterText = '') {
+    const container = document.getElementById('menu-content');
+    let enabledLandmarks = landmarks.filter(l => l.enabled !== false);
+    
+    if (filterText) {
+        const query = filterText.toLowerCase().trim();
+        enabledLandmarks = enabledLandmarks.filter(l => 
+            (l.name && l.name.toLowerCase().includes(query)) ||
+            (l.address && l.address.toLowerCase().includes(query)) ||
+            (l.category && l.category.toLowerCase().includes(query))
+        );
+    }
+    
+    if (enabledLandmarks.length === 0) {
+        const message = filterText ? '未找到匹配的地标' : '暂无地标';
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-map-marker" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <p>${message}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = enabledLandmarks.map(landmark => {
+        const iconClass = getIconClass(landmark.icon);
+        const color = validateColor(landmark.color);
+        const escapedId = escapeHtml(landmark.id);
+        const escapedName = escapeHtml(landmark.name || '');
+        const escapedAddress = escapeHtml(landmark.address || '');
+        return `
+            <div class="menu-item" data-id="${escapedId}" onclick="handleMenuClick('${escapedId}')">
+                <div class="menu-item-icon" style="background: ${color};">
+                    <i class="fa-solid ${iconClass}" style="font-size: 14px;"></i>
+                </div>
+                <div class="menu-item-info">
+                    <div class="menu-item-name">${escapedName}</div>
+                    <div class="menu-item-address">${escapedAddress}</div>
+                </div>
+                <i class="fa-solid fa-chevron-right menu-item-arrow"></i>
+            </div>
+        `;
+    }).join('');
+}
+
+function handleMenuClick(id) {
+    toggleMenu();
+    goToLandmark(id);
+}
+
+function handleMenuSearch(value) {
+    renderMenuItems(value);
 }
 
 function showToast(message) {

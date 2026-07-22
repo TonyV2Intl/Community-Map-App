@@ -4,6 +4,11 @@ let selectedIcon = 'fa-location-dot';
 let selectedColor = '#4285f4';
 let landmarkEnabled = true;
 
+let pickerScale = 1;
+let pickerTranslateX = 0;
+let pickerTranslateY = 0;
+let pickerMinScale = 1;
+
 const urlParams = new URLSearchParams(window.location.search);
 const idParam = urlParams.get('id');
 
@@ -18,17 +23,26 @@ function init() {
         document.getElementById('page-title').textContent = '新增地标';
     }
 
-    document.getElementById('picker-img-wrap').addEventListener('click', function(e) {
+    document.getElementById('picker-viewport').addEventListener('click', function(e) {
         const img = document.getElementById('picker-img');
-        const r = img.getBoundingClientRect();
-        let x = ((e.clientX - r.left) / r.width) * 100;
-        let y = ((e.clientY - r.top) / r.height) * 100;
+        const viewport = document.getElementById('picker-viewport');
+        const rect = viewport.getBoundingClientRect();
+        const iw = img.naturalWidth || img.offsetWidth;
+        const ih = img.naturalHeight || img.offsetHeight;
+        
+        const relativeX = e.clientX - rect.left - pickerTranslateX;
+        const relativeY = e.clientY - rect.top - pickerTranslateY;
+        
+        let x = (relativeX / (iw * pickerScale)) * 100;
+        let y = (relativeY / (ih * pickerScale)) * 100;
         x = Math.max(0, Math.min(100, x));
         y = Math.max(0, Math.min(100, y));
         document.getElementById('pos-x').value = x.toFixed(1);
         document.getElementById('pos-y').value = y.toFixed(1);
         syncPickerMarker();
     });
+
+    setupPickerDrag();
 }
 
 async function loadLandmark(id) {
@@ -66,8 +80,37 @@ function fillForm(landmark) {
     landmarkEnabled = landmark.enabled !== false;
     document.getElementById('landmark-enabled').checked = landmarkEnabled;
 
-    updateImagePreview();
+    updateTimeDisplay(landmark);
     updateIconPreview();
+}
+
+function updateTimeDisplay(landmark) {
+    const createdEl = document.getElementById('time-created');
+    const updatedEl = document.getElementById('time-updated');
+    
+    if (landmark.createdAt) {
+        createdEl.textContent = formatTimestamp(landmark.createdAt);
+    } else {
+        createdEl.textContent = '-';
+    }
+    
+    if (landmark.updatedAt) {
+        updatedEl.textContent = formatTimestamp(landmark.updatedAt);
+    } else {
+        updatedEl.textContent = '-';
+    }
+}
+
+function formatTimestamp(ts) {
+    if (!ts) return '-';
+    const date = new Date(ts);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    const s = String(date.getSeconds()).padStart(2, '0');
+    return `${y}-${m}-${d} ${h}:${min}:${s}`;
 }
 
 function selectIcon(btn) {
@@ -85,7 +128,23 @@ function updateIconSelection() {
             btn.classList.remove('active');
         }
     });
+    updateIconSearchSelection();
     updateIconPreview();
+}
+
+function updateIconSearchSelection() {
+    const modal = document.getElementById('icon-search-modal');
+    if (!modal || !modal.classList.contains('show')) return;
+    const grid = document.getElementById('icon-search-grid');
+    if (!grid) return;
+    grid.querySelectorAll('button').forEach(btn => {
+        const iconName = btn.getAttribute('data-icon-name');
+        if (`fa-${iconName}` === selectedIcon) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
 }
 
 function selectColor(btn) {
@@ -99,6 +158,43 @@ function selectColor(btn) {
 function selectCustomColor(color) {
     document.querySelectorAll('.clr-opt').forEach(b => b.classList.remove('active'));
     selectedColor = color;
+    updateRGBFromColor(color);
+    updateIconPreview();
+}
+
+function updateRGBFromColor(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    document.getElementById('rgb-r').value = r;
+    document.getElementById('rgb-g').value = g;
+    document.getElementById('rgb-b').value = b;
+    document.getElementById('hex-display').textContent = hex.toUpperCase();
+}
+
+function updateColorFromRGB() {
+    let r = parseInt(document.getElementById('rgb-r').value);
+    let g = parseInt(document.getElementById('rgb-g').value);
+    let b = parseInt(document.getElementById('rgb-b').value);
+    
+    r = Math.max(0, Math.min(255, isNaN(r) ? 0 : r));
+    g = Math.max(0, Math.min(255, isNaN(g) ? 0 : g));
+    b = Math.max(0, Math.min(255, isNaN(b) ? 0 : b));
+    
+    document.getElementById('rgb-r').value = r;
+    document.getElementById('rgb-g').value = g;
+    document.getElementById('rgb-b').value = b;
+    
+    const hex = '#' + 
+        r.toString(16).padStart(2, '0') + 
+        g.toString(16).padStart(2, '0') + 
+        b.toString(16).padStart(2, '0');
+    
+    selectedColor = hex;
+    document.getElementById('custom-color').value = hex;
+    document.getElementById('hex-display').textContent = hex.toUpperCase();
+    
+    document.querySelectorAll('.clr-opt').forEach(b => b.classList.remove('active'));
     updateIconPreview();
 }
 
@@ -112,9 +208,8 @@ function updateColorSelection() {
             btn.classList.remove('active');
         }
     });
-    if (!found) {
-        document.getElementById('custom-color').value = selectedColor;
-    }
+    document.getElementById('custom-color').value = selectedColor;
+    updateRGBFromColor(selectedColor);
     updateIconPreview();
 }
 
@@ -128,33 +223,180 @@ function updateIconPreview() {
     previewI.className = `fa-solid ${selectedIcon}`;
 }
 
-function updateImagePreview() {
-    const url = document.getElementById('landmark-image').value;
-    const preview = document.getElementById('image-preview');
-
-    if (url) {
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = '预览图';
-        img.onerror = function() {
-            preview.innerHTML = '<i class="fa-regular fa-image image-preview-placeholder"></i>';
-        };
-        preview.innerHTML = '';
-        preview.appendChild(img);
-    } else {
-        preview.innerHTML = '<i class="fa-regular fa-image image-preview-placeholder"></i>';
+function previewImage() {
+    const url = document.getElementById('landmark-image').value.trim();
+    const modal = document.getElementById('preview-modal');
+    const body = document.getElementById('preview-modal-body');
+    
+    if (!url) {
+        showToast('请先输入图片URL');
+        return;
     }
+    
+    body.innerHTML = '<div class="loading-state"><i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: white;"></i></div>';
+    modal.classList.add('show');
+    
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = '预览图';
+    img.onload = function() {
+        body.innerHTML = '';
+        body.appendChild(img);
+    };
+    img.onerror = function() {
+        body.innerHTML = '<div class="placeholder">图片加载失败</div>';
+    };
 }
+
+function closePreviewModal() {
+    document.getElementById('preview-modal').classList.remove('show');
+}
+
+document.getElementById('preview-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closePreviewModal();
+    }
+});
 
 function openPositionPicker() {
     document.getElementById('pos-picker').classList.add('show');
     document.body.style.overflow = 'hidden';
     syncPickerMarker();
+    initPickerTransform();
 }
 
 function closePositionPicker() {
     document.getElementById('pos-picker').classList.remove('show');
     document.body.style.overflow = '';
+}
+
+function initPickerTransform() {
+    const img = document.getElementById('picker-img');
+    const viewport = document.getElementById('picker-viewport');
+    const transform = document.getElementById('picker-transform');
+    
+    const iw = img.naturalWidth || img.offsetWidth;
+    const ih = img.naturalHeight || img.offsetHeight;
+    const vw = viewport.offsetWidth;
+    const vh = viewport.offsetHeight;
+    
+    transform.style.width = iw + 'px';
+    transform.style.height = ih + 'px';
+    
+    pickerMinScale = Math.min(vw / iw, vh / ih);
+    pickerScale = pickerMinScale;
+    pickerTranslateX = (vw - iw * pickerScale) / 2;
+    pickerTranslateY = (vh - ih * pickerScale) / 2;
+    
+    applyPickerTransform();
+}
+
+function applyPickerTransform() {
+    const transform = document.getElementById('picker-transform');
+    transform.style.transform = `translate(${pickerTranslateX}px, ${pickerTranslateY}px) scale(${pickerScale})`;
+}
+
+function clampPickerBounds() {
+    const img = document.getElementById('picker-img');
+    const viewport = document.getElementById('picker-viewport');
+    const iw = img.naturalWidth || img.offsetWidth;
+    const ih = img.naturalHeight || img.offsetHeight;
+    const vw = viewport.offsetWidth;
+    const vh = viewport.offsetHeight;
+    
+    const ww = iw * pickerScale;
+    const wh = ih * pickerScale;
+    
+    const maxPanX = Math.max(0, (ww - vw) / 2);
+    const maxPanY = Math.max(0, (wh - vh) / 2);
+    
+    pickerTranslateX = Math.max(-maxPanX, Math.min(maxPanX, pickerTranslateX));
+    pickerTranslateY = Math.max(-maxPanY, Math.min(maxPanY, pickerTranslateY));
+}
+
+function pickerZoomIn() {
+    const newScale = pickerScale * 1.25;
+    if (newScale > 5) return;
+    
+    const viewport = document.getElementById('picker-viewport');
+    const vw = viewport.offsetWidth;
+    const vh = viewport.offsetHeight;
+    
+    const ratio = newScale / pickerScale;
+    pickerTranslateX = vw / 2 - ratio * (vw / 2 - pickerTranslateX);
+    pickerTranslateY = vh / 2 - ratio * (vh / 2 - pickerTranslateY);
+    pickerScale = newScale;
+    
+    clampPickerBounds();
+    applyPickerTransform();
+}
+
+function pickerZoomOut() {
+    const newScale = pickerScale / 1.25;
+    if (newScale < pickerMinScale) {
+        pickerScale = pickerMinScale;
+        initPickerTransform();
+        return;
+    }
+    
+    const viewport = document.getElementById('picker-viewport');
+    const vw = viewport.offsetWidth;
+    const vh = viewport.offsetHeight;
+    
+    const ratio = newScale / pickerScale;
+    pickerTranslateX = vw / 2 - ratio * (vw / 2 - pickerTranslateX);
+    pickerTranslateY = vh / 2 - ratio * (vh / 2 - pickerTranslateY);
+    pickerScale = newScale;
+    
+    clampPickerBounds();
+    applyPickerTransform();
+}
+
+function setupPickerDrag() {
+    const viewport = document.getElementById('picker-viewport');
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    
+    viewport.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        startX = e.clientX - pickerTranslateX;
+        startY = e.clientY - pickerTranslateY;
+    });
+    
+    viewport.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        pickerTranslateX = e.clientX - startX;
+        pickerTranslateY = e.clientY - startY;
+        clampPickerBounds();
+        applyPickerTransform();
+    });
+    
+    viewport.addEventListener('mouseup', function() {
+        isDragging = false;
+    });
+    
+    viewport.addEventListener('mouseleave', function() {
+        isDragging = false;
+    });
+    
+    viewport.addEventListener('touchstart', function(e) {
+        isDragging = true;
+        startX = e.touches[0].clientX - pickerTranslateX;
+        startY = e.touches[0].clientY - pickerTranslateY;
+    }, { passive: true });
+    
+    viewport.addEventListener('touchmove', function(e) {
+        if (!isDragging) return;
+        pickerTranslateX = e.touches[0].clientX - startX;
+        pickerTranslateY = e.touches[0].clientY - startY;
+        clampPickerBounds();
+        applyPickerTransform();
+    }, { passive: true });
+    
+    viewport.addEventListener('touchend', function() {
+        isDragging = false;
+    });
 }
 
 function syncPositionFromInput() {
@@ -166,10 +408,24 @@ function syncPickerMarker() {
     const y = parseFloat(document.getElementById('pos-y').value) || 0;
     const marker = document.getElementById('picker-marker');
     const label = document.getElementById('picker-label');
+    const xDisplay = document.getElementById('pos-x-display');
+    const yDisplay = document.getElementById('pos-y-display');
 
-    marker.style.left = x + '%';
-    marker.style.top = y + '%';
+    const img = document.getElementById('picker-img');
+    const viewport = document.getElementById('picker-viewport');
+    const iw = img.naturalWidth || img.offsetWidth;
+    const ih = img.naturalHeight || img.offsetHeight;
+    const rect = viewport.getBoundingClientRect();
+
+    const markerX = rect.left + pickerTranslateX + (x / 100) * iw * pickerScale;
+    const markerY = rect.top + pickerTranslateY + (y / 100) * ih * pickerScale;
+
+    marker.style.left = markerX + 'px';
+    marker.style.top = markerY + 'px';
     label.textContent = `X: ${x.toFixed(1)}%  Y: ${y.toFixed(1)}%`;
+
+    if (xDisplay) xDisplay.textContent = x.toFixed(1);
+    if (yDisplay) yDisplay.textContent = y.toFixed(1);
 }
 
 async function saveLandmark() {
@@ -264,6 +520,62 @@ document.addEventListener('keydown', function(e) {
         if (document.getElementById('pos-picker').classList.contains('show')) {
             closePositionPicker();
         }
+        if (document.getElementById('icon-search-modal').classList.contains('show')) {
+            closeIconSearchModal();
+        }
+    }
+});
+
+function openIconSearchModal() {
+    document.getElementById('icon-search-modal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('icon-search-input').value = '';
+    renderIconGrid(FONT_AWESOME_ICONS);
+}
+
+function closeIconSearchModal() {
+    document.getElementById('icon-search-modal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+function filterIcons() {
+    const query = document.getElementById('icon-search-input').value.toLowerCase().trim();
+    if (!query) {
+        renderIconGrid(FONT_AWESOME_ICONS);
+        return;
+    }
+    const filtered = FONT_AWESOME_ICONS.filter(icon => 
+        icon.name.toLowerCase().includes(query)
+    );
+    renderIconGrid(filtered);
+}
+
+function renderIconGrid(icons) {
+    const grid = document.getElementById('icon-search-grid');
+    grid.innerHTML = '';
+    
+    icons.forEach(icon => {
+        const btn = document.createElement('button');
+        const className = icon.prefix === 'brands' ? `fa-brands fa-${icon.name}` : `fa-solid fa-${icon.name}`;
+        btn.innerHTML = `<i class="${className}"></i>`;
+        btn.title = icon.name;
+        btn.setAttribute('data-icon-name', icon.name);
+        if (`fa-${icon.name}` === selectedIcon) {
+            btn.classList.add('selected');
+        }
+        btn.onclick = function() {
+            selectedIcon = `fa-${icon.name}`;
+            updateIconSelection();
+            updateIconPreview();
+            closeIconSearchModal();
+        };
+        grid.appendChild(btn);
+    });
+}
+
+document.getElementById('icon-search-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeIconSearchModal();
     }
 });
 

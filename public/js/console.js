@@ -295,7 +295,62 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         if (document.getElementById('confirm-dialog').classList.contains('show')) {
             cancelDelete();
+        } else if (document.getElementById('kv-modal').classList.contains('show')) {
+            closeKvModal();
         }
+    }
+});
+
+async function viewKvRaw() {
+    const modal = document.getElementById('kv-modal');
+    const body = document.getElementById('kv-modal-body');
+    
+    body.innerHTML = '<div class="loading-state"><i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: var(--cmap-primary);"></i><p>加载中...</p></div>';
+    modal.classList.add('show');
+    
+    try {
+        const res = await fetch('/api/kv-debug');
+        const data = await res.json();
+        
+        if (data.error) {
+            body.innerHTML = `<div class="empty-kv"><i class="fa-solid fa-exclamation-circle" style="font-size: 32px; margin-bottom: 8px; opacity: 0.5;"></i><p>${data.error}</p></div>`;
+            return;
+        }
+        
+        if (!data.exists || !data.raw) {
+            body.innerHTML = `<div class="empty-kv"><i class="fa-solid fa-database" style="font-size: 32px; margin-bottom: 8px; opacity: 0.5;"></i><p>KV 值为空</p></div>`;
+            return;
+        }
+        
+        body.innerHTML = `<pre>${escapeHtml(data.raw)}</pre>`;
+    } catch (e) {
+        console.error('获取KV失败:', e);
+        body.innerHTML = `<div class="empty-kv"><i class="fa-solid fa-exclamation-circle" style="font-size: 32px; margin-bottom: 8px; opacity: 0.5;"></i><p>获取失败: ${e.message}</p></div>`;
+    }
+}
+
+function closeKvModal() {
+    document.getElementById('kv-modal').classList.remove('show');
+}
+
+function copyKvValue() {
+    const body = document.getElementById('kv-modal-body');
+    const pre = body.querySelector('pre');
+    if (!pre) {
+        showToast('没有可复制的内容');
+        return;
+    }
+    
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+        showToast('已复制到剪贴板');
+    }).catch(() => {
+        showToast('复制失败');
+    });
+}
+
+document.getElementById('kv-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeKvModal();
     }
 });
 
