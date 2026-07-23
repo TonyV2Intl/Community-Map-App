@@ -21,11 +21,10 @@ export async function onRequest(context) {
             config = await getDefaultConfig(env);
         }
         
-        // 返回配置，baidu_ak 从环境变量获取
+        // 返回配置
         return jsonResponse({
             region: config.region || '上海',
-            boundaryBuffer: config.boundaryBuffer !== undefined ? config.boundaryBuffer : 0.1,
-            baidu_ak: env.BAIDU_AK || ''
+            boundaryBuffer: config.boundaryBuffer !== undefined ? config.boundaryBuffer : 0.1
         });
     }
     

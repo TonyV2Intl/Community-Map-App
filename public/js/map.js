@@ -1,8 +1,7 @@
 let landmarks = [];
 let currentLandmark = null;
 let mapConfig = {
-    region: '上海',
-    baidu_ak: ''
+    region: '上海'
 };
 
 function escapeHtml(text) {
@@ -393,107 +392,7 @@ function handleNavigate() {
         ? encodeURIComponent(currentLandmark.address)
         : encodeURIComponent(currentLandmark.name);
     
-    // 如果配置了百度AK，使用App调起协议
-    if (mapConfig.baidu_ak) {
-        navigateWithApp(destination);
-    } else {
-        // 未配置AK，使用网页版链接
-        navigateWithWeb(destination);
-    }
-}
-
-async function navigateWithApp(destination) {
-    // 先地理编码获取目的地坐标
-    try {
-        const geocodeUrl = `https://api.map.baidu.com/geocoding/v3/?address=${destination}&city=${encodeURIComponent(mapConfig.region)}&output=json&ak=${mapConfig.baidu_ak}`;
-        const res = await fetch(geocodeUrl);
-        const data = await res.json();
-        
-        if (data.status !== 0 || !data.result || !data.result.location) {
-            console.warn('地理编码失败:', data.message);
-            navigateWithWeb(destination);
-            return;
-        }
-        
-        const destLat = data.result.location.lat;
-        const destLng = data.result.location.lng;
-        
-        // 获取用户当前位置
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                async function(position) {
-                    const originLat = position.coords.latitude;
-                    const originLng = position.coords.longitude;
-                    
-                    // 将WGS84坐标转换为BD09LL坐标
-                    try {
-                        const convUrl = `https://api.map.baidu.com/geoconv/v1/?coords=${originLng},${originLat}&from=1&to=5&output=json&ak=${mapConfig.baidu_ak}`;
-                        const convRes = await fetch(convUrl);
-                        const convData = await convRes.json();
-                        
-                        let originBdLat = originLat;
-                        let originBdLng = originLng;
-                        
-                        if (convData.status === 0 && convData.result && convData.result.length > 0) {
-                            originBdLat = convData.result[0].y;
-                            originBdLng = convData.result[0].x;
-                        }
-                        
-                        // 构建App调起链接
-                        openBaiduMapApp(originBdLat, originBdLng, destLat, destLng);
-                    } catch (e) {
-                        console.warn('坐标转换失败:', e);
-                        openBaiduMapApp(originLat, originLng, destLat, destLng);
-                    }
-                },
-                function(error) {
-                    console.warn('获取位置失败:', error);
-                    // 不带起点，直接导航到目的地
-                    openBaiduMapApp(null, null, destLat, destLng);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                }
-            );
-        } else {
-            openBaiduMapApp(null, null, destLat, destLng);
-        }
-    } catch (e) {
-        console.error('导航失败:', e);
-        navigateWithWeb(destination);
-    }
-}
-
-function openBaiduMapApp(originLat, originLng, destLat, destLng) {
-    // 构建调起链接
-    // iOS: baidumap://map/walknavi?destination=纬度,经度&coord_type=bd09ll&src=ios.companyName.appName
-    // Android: bdapp://map/walknavi?destination=纬度,经度&coord_type=bd09ll&src=andr.companyName.appName
-    
-    let iosUrl = `baidumap://map/walknavi?destination=${destLat},${destLng}&coord_type=bd09ll&src=ios.community.map.app`;
-    let androidUrl = `bdapp://map/walknavi?destination=${destLat},${destLng}&coord_type=bd09ll&src=andr.community.map.app`;
-    
-    if (originLat !== null && originLng !== null) {
-        iosUrl += `&origin=${originLat},${originLng}&origin_coord_type=bd09ll`;
-        androidUrl += `&origin=${originLat},${originLng}&origin_coord_type=bd09ll`;
-    }
-    
-    // 尝试调起App
-    const link = document.createElement('a');
-    link.href = iosUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // 如果iOS App未安装，尝试Android链接
-    setTimeout(() => {
-        const link2 = document.createElement('a');
-        link2.href = androidUrl;
-        document.body.appendChild(link2);
-        link2.click();
-        document.body.removeChild(link2);
-    }, 300);
+    navigateWithWeb(destination);
 }
 
 function navigateWithWeb(destination) {
@@ -784,7 +683,6 @@ async function loadConfig() {
         if (res.ok) {
             const config = await res.json();
             if (config.region) mapConfig.region = config.region;
-            if (config.baidu_ak) mapConfig.baidu_ak = config.baidu_ak;
             if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
             return;
         }
@@ -799,8 +697,7 @@ async function loadConfig() {
             const data = await res.json();
             const config = data.config || {};
             if (config.region) mapConfig.region = config.region;
-
-            // baidu_ak 仅从环境变量获取，不在文件中存储
+            if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
         }
     } catch (e) {
         console.warn('加载配置失败，使用默认配置', e);
