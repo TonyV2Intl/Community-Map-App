@@ -1,4 +1,4 @@
-import { getAllLandmarks, saveAllLandmarks, generateId, corsHeaders, jsonResponse } from './_shared';
+import { getAllLandmarks, saveAllLandmarks, generateId, corsHeaders, jsonResponse, geocodeAddress } from './_shared';
 
 export async function onRequestGet(context) {
   const env = context.env;
@@ -31,6 +31,8 @@ export async function onRequestPost(context) {
       address: data.address || '',
       x: Number(data.x) || 50,
       y: Number(data.y) || 50,
+      lat: data.lat !== undefined && data.lat !== null && data.lat !== '' ? Number(data.lat) : null,
+      lng: data.lng !== undefined && data.lng !== null && data.lng !== '' ? Number(data.lng) : null,
       icon: data.icon || 'fa-location-dot',
       color: data.color || '#4285f4',
       description: data.description || '',
@@ -39,6 +41,19 @@ export async function onRequestPost(context) {
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
+
+    // 自动地理编码：有地址但无经纬度时，尝试获取
+    if (newLandmark.address && (newLandmark.lat === null || newLandmark.lng === null)) {
+      try {
+        const geo = await geocodeAddress(env, newLandmark.address);
+        if (geo) {
+          newLandmark.lat = geo.lat;
+          newLandmark.lng = geo.lng;
+        }
+      } catch (e) {
+        console.warn('自动地理编码失败:', e);
+      }
+    }
 
     landmarks.push(newLandmark);
     await saveAllLandmarks(env, landmarks);
@@ -71,6 +86,8 @@ export async function onRequestPut(context) {
         address: item.address || '',
         x: Number(item.x) || 50,
         y: Number(item.y) || 50,
+        lat: item.lat !== undefined && item.lat !== null && item.lat !== '' ? Number(item.lat) : null,
+        lng: item.lng !== undefined && item.lng !== null && item.lng !== '' ? Number(item.lng) : null,
         icon: item.icon || 'fa-location-dot',
         color: item.color || '#4285f4',
         description: item.description || '',
@@ -80,6 +97,21 @@ export async function onRequestPut(context) {
         updatedAt: Date.now()
       };
     }).filter(item => item !== null);
+
+    // 自动地理编码：为缺少经纬度的地标批量获取
+    for (const lm of validLandmarks) {
+      if (lm.address && (lm.lat === null || lm.lng === null)) {
+        try {
+          const geo = await geocodeAddress(env, lm.address);
+          if (geo) {
+            lm.lat = geo.lat;
+            lm.lng = geo.lng;
+          }
+        } catch (e) {
+          console.warn(`自动地理编码失败 [${lm.name}]:`, e);
+        }
+      }
+    }
 
     await saveAllLandmarks(env, validLandmarks);
 

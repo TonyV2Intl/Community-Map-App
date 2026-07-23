@@ -1,4 +1,4 @@
-import { getAllLandmarks, saveAllLandmarks, corsHeaders, jsonResponse } from '../_shared';
+import { getAllLandmarks, saveAllLandmarks, corsHeaders, jsonResponse, geocodeAddress } from '../_shared';
 
 export async function onRequestGet(context) {
   const env = context.env;
@@ -39,8 +39,24 @@ export async function onRequestPut(context) {
       ...landmarks[index],
       ...data,
       id: id,
+      lat: data.lat !== undefined && data.lat !== null && data.lat !== '' ? Number(data.lat) : landmarks[index].lat,
+      lng: data.lng !== undefined && data.lng !== null && data.lng !== '' ? Number(data.lng) : landmarks[index].lng,
       updatedAt: Date.now()
     };
+
+    // 自动地理编码：有地址但无经纬度时，尝试获取
+    const addr = updated.address;
+    if (addr && (updated.lat === null || updated.lat === undefined || updated.lng === null || updated.lng === undefined)) {
+      try {
+        const geo = await geocodeAddress(env, addr);
+        if (geo) {
+          updated.lat = geo.lat;
+          updated.lng = geo.lng;
+        }
+      } catch (e) {
+        console.warn('自动地理编码失败:', e);
+      }
+    }
 
     landmarks[index] = updated;
     await saveAllLandmarks(env, landmarks);

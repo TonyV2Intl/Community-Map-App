@@ -24,7 +24,8 @@ export async function onRequest(context) {
         // 返回配置
         return jsonResponse({
             region: config.region || '上海',
-            boundaryBuffer: config.boundaryBuffer !== undefined ? config.boundaryBuffer : 0.1
+            boundaryBuffer: config.boundaryBuffer !== undefined ? config.boundaryBuffer : 0.1,
+            tencentReferer: config.tencentReferer || 'community-map'
         });
     }
     
@@ -34,7 +35,8 @@ export async function onRequest(context) {
             const body = await request.json();
             const config = {
                 region: body.region || '上海',
-                boundaryBuffer: body.boundaryBuffer !== undefined ? parseFloat(body.boundaryBuffer) : 0.1
+                boundaryBuffer: body.boundaryBuffer !== undefined ? parseFloat(body.boundaryBuffer) : 0.1,
+                tencentReferer: body.tencentReferer || 'community-map'
             };
             
             await env.LANDMARKS.put(CONFIG_KEY, JSON.stringify(config));

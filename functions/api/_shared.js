@@ -192,3 +192,37 @@ export function jsonResponse(data, status) {
     }
   });
 }
+
+export async function geocodeAddress(env, address) {
+  const key = env.TIANDITU_KEY;
+  if (!key) {
+    console.warn('TIANDITU_KEY 未配置，跳过地理编码');
+    return null;
+  }
+
+  if (!address || !address.trim()) {
+    return null;
+  }
+
+  try {
+    const ds = JSON.stringify({ keyWord: address.trim() });
+    const url = `http://api.tianditu.gov.cn/geocoder?ds=${encodeURIComponent(ds)}&tk=${encodeURIComponent(key)}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error('天地图地理编码请求失败:', response.status);
+      return null;
+    }
+    const data = await response.json();
+    if (data.status === '0' && data.location) {
+      return {
+        lng: data.location.lon,
+        lat: data.location.lat
+      };
+    }
+    console.warn('天地图地理编码未找到结果:', data.msg || '未知错误');
+    return null;
+  } catch (e) {
+    console.error('天地图地理编码异常:', e);
+    return null;
+  }
+}

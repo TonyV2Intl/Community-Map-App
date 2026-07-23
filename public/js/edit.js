@@ -67,6 +67,8 @@ function fillForm(landmark) {
     document.getElementById('landmark-image').value = landmark.imageUrl || '';
     document.getElementById('pos-x').value = landmark.x || 50;
     document.getElementById('pos-y').value = landmark.y || 50;
+    document.getElementById('landmark-lat').value = landmark.lat !== null && landmark.lat !== undefined ? landmark.lat : '';
+    document.getElementById('landmark-lng').value = landmark.lng !== null && landmark.lng !== undefined ? landmark.lng : '';
 
     if (landmark.icon) {
         selectedIcon = landmark.icon;
@@ -520,6 +522,8 @@ async function saveLandmark() {
         imageUrl,
         x,
         y,
+        lat: parseLatLng(document.getElementById('landmark-lat').value),
+        lng: parseLatLng(document.getElementById('landmark-lng').value),
         icon: selectedIcon,
         color: selectedColor,
         enabled: landmarkEnabled
@@ -638,5 +642,40 @@ document.getElementById('icon-search-modal').addEventListener('click', function(
         closeIconSearchModal();
     }
 });
+
+function parseLatLng(value) {
+    if (value === undefined || value === null || value === '') return null;
+    var num = Number(value);
+    return isNaN(num) ? null : num;
+}
+
+async function geocodeFromAddress() {
+    var address = document.getElementById('landmark-address').value.trim();
+    if (!address) {
+        showToast('请先输入地址');
+        return;
+    }
+    
+    try {
+        var res = await fetch('/api/geocode?address=' + encodeURIComponent(address));
+        if (res.ok) {
+            var data = await res.json();
+            if (data.lat && data.lng) {
+                document.getElementById('landmark-lat').value = data.lat;
+                document.getElementById('landmark-lng').value = data.lng;
+                showToast('坐标获取成功');
+            } else {
+                showToast('未找到该地址的坐标');
+            }
+        } else if (res.status === 401) {
+            showToast('请先登录控制台');
+        } else {
+            showToast('地理编码失败，请手动填写');
+        }
+    } catch (e) {
+        console.error('地理编码失败:', e);
+        showToast('网络错误，请手动填写');
+    }
+}
 
 init();

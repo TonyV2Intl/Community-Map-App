@@ -1,7 +1,8 @@
 let landmarks = [];
 let currentLandmark = null;
 let mapConfig = {
-    region: '上海'
+    region: '上海',
+    tencentReferer: 'community-map'
 };
 
 function escapeHtml(text) {
@@ -350,6 +351,9 @@ function openDetail(id) {
     // 保存当前地标用于导航
     currentLandmark = landmark;
 
+    // 重置导航平台面板
+    resetNavPanel();
+
     document.getElementById('detail-title').textContent = landmark.name;
     document.getElementById('detail-description').textContent = landmark.description || '暂无介绍';
     document.getElementById('detail-address').textContent = landmark.address || '';
@@ -385,74 +389,171 @@ function openDetail(id) {
     document.body.style.overflow = 'hidden';
 }
 
-function handleNavigate() {
-    if (!currentLandmark) return;
-    
-    const destination = currentLandmark.address 
-        ? encodeURIComponent(currentLandmark.address)
-        : encodeURIComponent(currentLandmark.name);
-    
-    navigateWithWeb(destination);
-}
-
-function navigateWithWeb(destination) {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                const origin = `latlng:${position.coords.latitude},${position.coords.longitude}|name:我的位置`;
-                const navUrl = `http://api.map.baidu.com/direction?origin=${origin}&destination=${destination}&mode=walking&region=${mapConfig.region}&output=html`;
-                window.open(navUrl, '_blank');
-            },
-            function(error) {
-                console.warn('获取位置失败:', error);
-                showToast('无法获取当前位置，请手动设置起点');
-                const navUrl = `http://api.map.baidu.com/direction?destination=${destination}&mode=walking&region=${mapConfig.region}&output=html`;
-                window.open(navUrl, '_blank');
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
-            }
-        );
+function toggleNavPanel() {
+    var panel = document.getElementById('nav-platforms');
+    if (panel.style.display === 'none' || panel.style.display === '') {
+        panel.style.display = 'flex';
     } else {
-        showToast('您的浏览器不支持地理定位');
-        const navUrl = `http://api.map.baidu.com/direction?destination=${destination}&mode=walking&region=${mapConfig.region}&output=html`;
-        window.open(navUrl, '_blank');
+        panel.style.display = 'none';
     }
 }
 
-function copyNavUrl() {
+function resetNavPanel() {
+    var panel = document.getElementById('nav-platforms');
+    if (panel) {
+        panel.style.display = 'none';
+    }
+}
+
+function handleNavigate(platform) {
     if (!currentLandmark) return;
     
-    const destination = currentLandmark.address 
-        ? encodeURIComponent(currentLandmark.address)
-        : encodeURIComponent(currentLandmark.name);
-    
-    // 获取用户当前位置作为起点
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                const origin = `latlng:${position.coords.latitude},${position.coords.longitude}|name:我的位置`;
-                const navUrl = `http://api.map.baidu.com/direction?origin=${origin}&destination=${destination}&mode=walking&region=${mapConfig.region}&output=html`;
-                doCopy(navUrl);
-            },
-            function(error) {
-                console.warn('获取位置失败:', error);
-                // 位置获取失败时，不带起点参数
-                const navUrl = `http://api.map.baidu.com/direction?destination=${destination}&mode=walking&region=${mapConfig.region}&output=html`;
-                doCopy(navUrl);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
-            }
-        );
+    var destLat = currentLandmark.lat || null;
+    var destLng = currentLandmark.lng || null;
+    var destination = encodeURIComponent(currentLandmark.name);
+
+    // 百度地图：需要起点坐标；高德/腾讯：让地图自行获取
+    if (platform === 'baidu') {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    navigateWithPlatform(platform, position.coords.longitude, position.coords.latitude, destination, destLng, destLat);
+                },
+                function(error) {
+                    console.warn('获取位置失败:', error);
+                    showToast('无法获取当前位置，请手动设置起点');
+                    navigateWithPlatform(platform, null, null, destination, destLng, destLat);
+                },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        } else {
+            showToast('您的浏览器不支持地理定位');
+            navigateWithPlatform(platform, null, null, destination, destLng, destLat);
+        }
     } else {
-        // 浏览器不支持地理定位时，不带起点参数
-        const navUrl = `http://api.map.baidu.com/direction?destination=${destination}&mode=walking&region=${mapConfig.region}&output=html`;
+        navigateWithPlatform(platform, null, null, destination, destLng, destLat);
+    }
+}
+
+function convertCoord(lng, lat, fromCRS, toCRS) {
+    if (typeof gcoord === 'undefined' || !gcoord.transform) {
+        console.warn('gcoord 未加载，跳过坐标转换');
+        return [lng, lat];
+    }
+    try {
+        return gcoord.transform([lng, lat], fromCRS, toCRS);
+    } catch (e) {
+        console.error('坐标转换失败:', e);
+        return [lng, lat];
+    }
+}
+
+function navigateWithPlatform(platform, originLng, originLat, destination, destLng, destLat) {
+    var navUrl;
+    switch (platform) {
+        case 'baidu':
+            navUrl = buildBaiduNavUrl(originLng, originLat, destination, destLng, destLat);
+            break;
+        case 'amap':
+            navUrl = buildAmapNavUrl(originLng, originLat, destination, destLng, destLat);
+            break;
+        case 'tencent':
+            navUrl = buildTencentNavUrl(originLng, originLat, destination, destLng, destLat);
+            break;
+        default:
+            navUrl = buildBaiduNavUrl(originLng, originLat, destination, destLng, destLat);
+    }
+    window.open(navUrl, '_blank');
+}
+
+function buildBaiduNavUrl(originLng, originLat, destination, destLng, destLat) {
+    var baseUrl = 'https://api.map.baidu.com/direction';
+    var params = [];
+    params.push('destination=' + destination);
+    params.push('mode=walking');
+    params.push('region=' + encodeURIComponent(mapConfig.region));
+    params.push('output=html');
+    params.push('src=' + encodeURIComponent(window.location.hostname));
+
+    if (originLng !== null && originLat !== null) {
+        var bdCoord = convertCoord(originLng, originLat, gcoord.WGS84, gcoord.BD09);
+        params.push('origin=latlng:' + bdCoord[1] + ',' + bdCoord[0] + '|name:我的位置');
+    }
+    
+    return baseUrl + '?' + params.join('&');
+}
+
+function buildAmapNavUrl(originLng, originLat, destination, destLng, destLat) {
+    var baseUrl = 'https://uri.amap.com/navigation';
+    var params = [];
+
+    if (destLng !== null && destLng !== undefined && destLat !== null && destLat !== undefined) {
+        params.push('to=' + destLng + ',' + destLat + ',endpoint');
+    } else {
+        params.push('to=' + destination);
+    }
+    params.push('mode=walk');
+    params.push('src=' + encodeURIComponent(window.location.hostname));
+    
+    return baseUrl + '?' + params.join('&');
+}
+
+function buildTencentNavUrl(originLng, originLat, destination, destLng, destLat) {
+    var baseUrl = 'https://apis.map.qq.com/uri/v1/routeplan';
+    var params = [];
+    params.push('type=walk');
+    params.push('to=' + destination);
+    params.push('referer=' + encodeURIComponent(mapConfig.tencentReferer));
+
+    if (destLng !== null && destLng !== undefined && destLat !== null && destLat !== undefined) {
+        params.push('tocoord=' + destLat + ',' + destLng);
+    }
+    
+    return baseUrl + '?' + params.join('&');
+}
+
+function copyNavUrl(platform) {
+    if (!currentLandmark) return;
+    
+    var destLat = currentLandmark.lat || null;
+    var destLng = currentLandmark.lng || null;
+    var destination = encodeURIComponent(currentLandmark.name);
+
+    // 百度地图：需要起点坐标；高德/腾讯：让地图自行获取
+    if (platform === 'baidu') {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    var navUrl = getNavUrl(platform, position.coords.longitude, position.coords.latitude, destination, destLng, destLat);
+                    doCopy(navUrl);
+                },
+                function(error) {
+                    console.warn('获取位置失败:', error);
+                    var navUrl = getNavUrl(platform, null, null, destination, destLng, destLat);
+                    doCopy(navUrl);
+                },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        } else {
+            var navUrl = getNavUrl(platform, null, null, destination, destLng, destLat);
+            doCopy(navUrl);
+        }
+    } else {
+        var navUrl = getNavUrl(platform, null, null, destination, destLng, destLat);
         doCopy(navUrl);
+    }
+}
+
+function getNavUrl(platform, originLng, originLat, destination, destLng, destLat) {
+    switch (platform) {
+        case 'baidu':
+            return buildBaiduNavUrl(originLng, originLat, destination, destLng, destLat);
+        case 'amap':
+            return buildAmapNavUrl(originLng, originLat, destination, destLng, destLat);
+        case 'tencent':
+            return buildTencentNavUrl(originLng, originLat, destination, destLng, destLat);
+        default:
+            return buildBaiduNavUrl(originLng, originLat, destination, destLng, destLat);
     }
 }
 
@@ -493,8 +594,75 @@ function fallbackCopy(text) {
 }
 
 function closeDetail() {
+    stopSpeak();
     document.getElementById('detail-modal').classList.remove('show');
     document.body.style.overflow = '';
+}
+
+let isSpeaking = false;
+
+function toggleSpeak() {
+    if (isSpeaking) {
+        stopSpeak();
+        return;
+    }
+    if (!currentLandmark) return;
+    if (!window.speechSynthesis) {
+        showToast('您的浏览器不支持语音朗读');
+        return;
+    }
+
+    const text = (currentLandmark.name || '') + '。' + (currentLandmark.description || '暂无介绍');
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.9;
+
+    utterance.onstart = function() {
+        isSpeaking = true;
+        updateSpeakButton(true);
+    };
+
+    utterance.onend = function() {
+        isSpeaking = false;
+        updateSpeakButton(false);
+    };
+
+    utterance.onerror = function(e) {
+        if (e.error !== 'interrupted') {
+            console.error('语音朗读错误:', e.error);
+            showToast('朗读失败');
+        }
+        isSpeaking = false;
+        updateSpeakButton(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+}
+
+function stopSpeak() {
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
+    if (isSpeaking) {
+        isSpeaking = false;
+        updateSpeakButton(false);
+    }
+}
+
+function updateSpeakButton(speaking) {
+    const btn = document.getElementById('speak-btn');
+    const icon = document.getElementById('speak-icon');
+    const label = document.getElementById('speak-label');
+    if (!btn || !icon || !label) return;
+    if (speaking) {
+        icon.className = 'fa-solid fa-stop';
+        label.textContent = '停止朗读';
+        btn.classList.add('speaking');
+    } else {
+        icon.className = 'fa-solid fa-volume-high';
+        label.textContent = '朗读介绍';
+        btn.classList.remove('speaking');
+    }
 }
 
 function goToLandmark(id) {
@@ -684,6 +852,7 @@ async function loadConfig() {
             const config = await res.json();
             if (config.region) mapConfig.region = config.region;
             if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
+            if (config.tencentReferer) mapConfig.tencentReferer = config.tencentReferer;
             return;
         }
     } catch (e) {
@@ -698,6 +867,7 @@ async function loadConfig() {
             const config = data.config || {};
             if (config.region) mapConfig.region = config.region;
             if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
+            if (config.tencentReferer) mapConfig.tencentReferer = config.tencentReferer;
         }
     } catch (e) {
         console.warn('加载配置失败，使用默认配置', e);

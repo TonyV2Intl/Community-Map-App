@@ -272,7 +272,7 @@
             transition: background 0.15s;
         }
         .navigate-btn:hover {
-            background: var(--cmap-primary-hover);
+            background: var(--cmap-primary-hover, var(--cmap-primary-dark));
         }
         .navigate-btn i {
             font-size: 18px;
@@ -298,6 +298,66 @@
         }
         .copy-nav-btn i {
             font-size: 18px;
+        }
+        .nav-platforms {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 12px;
+        }
+        .nav-platform-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: var(--cmap-muted);
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+        .nav-platform-item:hover {
+            background: var(--cmap-input);
+        }
+        .nav-platform-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--cmap-foreground);
+        }
+        .nav-platform-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .nav-go-btn {
+            padding: 6px 16px;
+            background: var(--cmap-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .nav-go-btn:hover {
+            opacity: 0.85;
+        }
+        .nav-copy-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            background: white;
+            color: var(--cmap-primary);
+            border: 1px solid var(--cmap-border);
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .nav-copy-btn:hover {
+            background: var(--cmap-muted);
         }
         .map-controls {
             position: absolute;
@@ -522,13 +582,38 @@
                         <span id="detail-address">地址</span>
                     </div>
                     <div class="navigate-actions">
-                        <button class="navigate-btn" id="navigate-btn" onclick="handleNavigate()">
+                        <button class="navigate-btn" onclick="toggleNavPanel()">
                             <i class="fa-solid fa-person-walking"></i>
                             <span>步行导航</span>
                         </button>
-                        <button class="copy-nav-btn" id="copy-nav-btn" onclick="copyNavUrl()">
-                            <i class="fa-solid fa-copy"></i>
-                            <span>复制链接</span>
+                    </div>
+                    <div class="nav-platforms" id="nav-platforms" style="display: none;">
+                        <div class="nav-platform-item">
+                            <span class="nav-platform-name">百度地图</span>
+                            <div class="nav-platform-actions">
+                                <button class="nav-go-btn" onclick="handleNavigate('baidu')">导航</button>
+                                <button class="nav-copy-btn" onclick="copyNavUrl('baidu')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="nav-platform-item">
+                            <span class="nav-platform-name">高德地图</span>
+                            <div class="nav-platform-actions">
+                                <button class="nav-go-btn" onclick="handleNavigate('amap')" style="background: #07c160;">导航</button>
+                                <button class="nav-copy-btn" onclick="copyNavUrl('amap')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="nav-platform-item">
+                            <span class="nav-platform-name">腾讯地图</span>
+                            <div class="nav-platform-actions">
+                                <button class="nav-go-btn" onclick="handleNavigate('tencent')" style="background: #006eff;">导航</button>
+                                <button class="nav-copy-btn" onclick="copyNavUrl('tencent')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="navigate-actions" style="margin-top: 8px;">
+                        <button class="speak-btn" id="speak-btn" onclick="toggleSpeak()">
+                            <i class="fa-solid fa-volume-high" id="speak-icon"></i>
+                            <span id="speak-label">朗读介绍</span>
                         </button>
                     </div>
                 </div>
@@ -554,6 +639,7 @@
         </div>
     </main>
 
+    <script src="https://unpkg.com/gcoord@1.0.7/dist/gcoord.global.prod.js"></script>
     <script src="/js/map.js"></script>
 </body>
 </html>
