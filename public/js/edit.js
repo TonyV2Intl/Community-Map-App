@@ -235,14 +235,22 @@ function previewImage() {
         return;
     }
     
-    // 验证URL是否为有效的图片URL
-    if (!/^https?:\/\//i.test(url)) {
+    // 使用 new URL() 构造函数验证URL的有效性
+    let validatedUrl;
+    try {
+        validatedUrl = new URL(url);
+        // 确保协议是 http 或 https
+        if (!['http:', 'https:'].includes(validatedUrl.protocol)) {
+            showToast('请输入有效的图片URL');
+            return;
+        }
+    } catch {
         showToast('请输入有效的图片URL');
         return;
     }
     
-    // 使用 createElement 替代 innerHTML 创建加载状态
-    body.innerHTML = '';
+    // 使用 replaceChildren 替代 innerHTML 清空内容
+    body.replaceChildren();
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'loading-state';
     const spinner = document.createElement('i');
@@ -255,14 +263,14 @@ function previewImage() {
     modal.classList.add('show');
     
     const img = document.createElement('img');
-    img.src = url;
+    img.src = validatedUrl.href;
     img.alt = '预览图';
     img.onload = function() {
-        body.innerHTML = '';
+        body.replaceChildren();
         body.appendChild(img);
     };
     img.onerror = function() {
-        body.innerHTML = '';
+        body.replaceChildren();
         const placeholder = document.createElement('div');
         placeholder.className = 'placeholder';
         placeholder.textContent = '图片加载失败';
@@ -597,7 +605,7 @@ function filterIcons() {
 
 function renderIconGrid(icons) {
     const grid = document.getElementById('icon-search-grid');
-    grid.innerHTML = '';
+    grid.replaceChildren();
     
     icons.forEach(icon => {
         const btn = document.createElement('button');

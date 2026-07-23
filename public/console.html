@@ -255,6 +255,37 @@
             color: var(--cmap-muted-foreground);
             padding: 20px;
         }
+        .config-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .config-item label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--cmap-foreground);
+        }
+        .config-item input {
+            padding: 10px 12px;
+            border: 1px solid var(--cmap-border);
+            border-radius: var(--cmap-radius-md);
+            font-size: 14px;
+            background: white;
+            color: var(--cmap-foreground);
+        }
+        .config-item input:focus {
+            outline: none;
+            border-color: var(--cmap-primary);
+        }
+        .config-desc {
+            font-size: 12px;
+            color: var(--cmap-muted-foreground);
+        }
         .kv-modal-footer {
             padding: 12px 16px;
             border-top: 1px solid var(--cmap-border);
@@ -332,6 +363,10 @@
                     <button type="button" class="action-btn" aria-label="导入数据" onclick="triggerImport()">
                         <i class="fa-solid fa-upload" style="font-size: 14px;"></i>
                         <span>导入</span>
+                    </button>
+                    <button type="button" class="action-btn" aria-label="系统配置" onclick="openConfigModal()">
+                        <i class="fa-solid fa-gear" style="font-size: 14px;"></i>
+                        <span>配置</span>
                     </button>
                     <button type="button" class="action-btn" aria-label="登出" onclick="handleLogout()" style="background: rgba(234, 67, 53, 0.1); color: #ea4335;">
                         <i class="fa-solid fa-right-from-bracket" style="font-size: 14px;"></i>
@@ -415,6 +450,36 @@
                     复制
                 </button>
                 <button class="kv-close-btn" onclick="closeKvModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="kv-modal" id="config-modal">
+        <div class="kv-modal-box">
+            <div class="kv-modal-header">
+                <h3>系统配置</h3>
+                <button class="kv-modal-close" onclick="closeConfigModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="kv-modal-body">
+                <div class="config-form">
+                    <div class="config-item">
+                        <label>城市区域 (region)</label>
+                        <input type="text" id="config-region" placeholder="如：上海" />
+                        <span class="config-desc">百度地图导航时使用的城市区域</span>
+                    </div>
+
+                    <div class="config-item">
+                        <label>百度地图AK</label>
+                        <input type="text" id="config-baidu-ak" placeholder="通过环境变量 BAIDU_AK 配置" disabled />
+                        <span class="config-desc">在 Cloudflare 控制台设置环境变量 BAIDU_AK，配置后可使用百度地图App调起导航</span>
+                    </div>
+                </div>
+            </div>
+            <div class="kv-modal-footer">
+                <button class="kv-close-btn" onclick="closeConfigModal()">取消</button>
+                <button class="kv-copy-btn" onclick="saveConfig()">保存</button>
             </div>
         </div>
     </div>

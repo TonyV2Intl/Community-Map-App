@@ -250,6 +250,55 @@
             color: var(--cmap-muted-foreground);
             line-height: 1.5;
         }
+        .navigate-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .navigate-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            padding: 14px;
+            background: var(--cmap-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .navigate-btn:hover {
+            background: var(--cmap-primary-hover);
+        }
+        .navigate-btn i {
+            font-size: 18px;
+        }
+        .copy-nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            padding: 14px;
+            background: white;
+            color: var(--cmap-primary);
+            border: 1px solid var(--cmap-border);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .copy-nav-btn:hover {
+            background: var(--cmap-muted);
+        }
+        .copy-nav-btn i {
+            font-size: 18px;
+        }
         .map-controls {
             position: absolute;
             right: 16px;
@@ -471,6 +520,16 @@
                     <div class="detail-address">
                         <i class="fa-solid fa-location-dot" style="font-size: 16px; color: var(--cmap-muted-foreground);"></i>
                         <span id="detail-address">地址</span>
+                    </div>
+                    <div class="navigate-actions">
+                        <button class="navigate-btn" id="navigate-btn" onclick="handleNavigate()">
+                            <i class="fa-solid fa-person-walking"></i>
+                            <span>步行导航</span>
+                        </button>
+                        <button class="copy-nav-btn" id="copy-nav-btn" onclick="copyNavUrl()">
+                            <i class="fa-solid fa-copy"></i>
+                            <span>复制链接</span>
+                        </button>
                     </div>
                 </div>
             </div>

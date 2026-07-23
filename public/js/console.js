@@ -45,7 +45,7 @@ function renderList() {
             emptyEl.id = 'empty-state';
             listEl.appendChild(emptyEl);
         }
-        emptyEl.innerHTML = '';
+        emptyEl.replaceChildren();
         const icon = document.createElement('i');
         icon.className = `fa-regular ${iconClass}`;
         icon.style.fontSize = '48px';
@@ -63,7 +63,7 @@ function renderList() {
         emptyEl.style.display = 'none';
     }
     
-    listEl.innerHTML = '';
+    listEl.replaceChildren();
     
     data.forEach(landmark => {
         const iconClass = getIconClass(landmark.icon);
@@ -355,7 +355,7 @@ async function viewKvRaw() {
     const body = document.getElementById('kv-modal-body');
     
     // 创建加载状态
-    body.innerHTML = '';
+    body.replaceChildren();
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'loading-state';
     const spinner = document.createElement('i');
@@ -375,7 +375,7 @@ async function viewKvRaw() {
         const data = await res.json();
         
         if (data.error) {
-            body.innerHTML = '';
+            body.replaceChildren();
             const errorDiv = document.createElement('div');
             errorDiv.className = 'empty-kv';
             const errorIcon = document.createElement('i');
@@ -391,8 +391,10 @@ async function viewKvRaw() {
             return;
         }
         
+        body.replaceChildren();
+        
+        // 显示地标数据
         if (!data.exists || !data.raw) {
-            body.innerHTML = '';
             const emptyDiv = document.createElement('div');
             emptyDiv.className = 'empty-kv';
             const emptyIcon = document.createElement('i');
@@ -402,19 +404,41 @@ async function viewKvRaw() {
             emptyIcon.style.opacity = '0.5';
             emptyDiv.appendChild(emptyIcon);
             const emptyP = document.createElement('p');
-            emptyP.textContent = 'KV 值为空';
+            emptyP.textContent = '地标数据为空';
             emptyDiv.appendChild(emptyP);
             body.appendChild(emptyDiv);
-            return;
+        } else {
+            const landmarkHeader = document.createElement('h4');
+            landmarkHeader.textContent = '地标数据';
+            landmarkHeader.style.fontSize = '14px';
+            landmarkHeader.style.fontWeight = '600';
+            landmarkHeader.style.marginBottom = '8px';
+            landmarkHeader.style.color = 'var(--cmap-foreground)';
+            body.appendChild(landmarkHeader);
+            
+            const pre = document.createElement('pre');
+            pre.textContent = data.raw;
+            body.appendChild(pre);
         }
         
-        body.innerHTML = '';
-        const pre = document.createElement('pre');
-        pre.textContent = data.raw;
-        body.appendChild(pre);
+        // 显示配置数据
+        if (data.config) {
+            const configHeader = document.createElement('h4');
+            configHeader.textContent = '配置数据';
+            configHeader.style.fontSize = '14px';
+            configHeader.style.fontWeight = '600';
+            configHeader.style.marginTop = '16px';
+            configHeader.style.marginBottom = '8px';
+            configHeader.style.color = 'var(--cmap-foreground)';
+            body.appendChild(configHeader);
+            
+            const configPre = document.createElement('pre');
+            configPre.textContent = JSON.stringify(data.config, null, 2);
+            body.appendChild(configPre);
+        }
     } catch (e) {
         console.error('获取KV失败:', e);
-        body.innerHTML = '';
+        body.replaceChildren();
         const errorDiv = document.createElement('div');
         errorDiv.className = 'empty-kv';
         const errorIcon = document.createElement('i');
@@ -432,6 +456,57 @@ async function viewKvRaw() {
 
 function closeKvModal() {
     document.getElementById('kv-modal').classList.remove('show');
+}
+
+function openConfigModal() {
+    const modal = document.getElementById('config-modal');
+    modal.classList.add('show');
+    
+    // 加载当前配置
+    fetch('/api/config')
+        .then(res => res.json())
+        .then(config => {
+            document.getElementById('config-region').value = config.region || '';
+            document.getElementById('config-baidu-ak').value = config.baidu_ak || '';
+        })
+        .catch(e => {
+            console.warn('加载配置失败', e);
+        });
+}
+
+function closeConfigModal() {
+    document.getElementById('config-modal').classList.remove('show');
+}
+
+async function saveConfig() {
+    const region = document.getElementById('config-region').value.trim();
+    const src = document.getElementById('config-src').value.trim();
+    
+    if (!region || !src) {
+        showToast('请填写完整配置');
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ region, src })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            showToast('配置保存成功');
+            closeConfigModal();
+        } else {
+            showToast('配置保存失败: ' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('保存配置失败', e);
+        showToast('配置保存失败');
+    }
 }
 
 function copyKvValue() {

@@ -1,2 +1,3 @@
-# 在本地测试时，复制此文件为 .dev.vars 并修改管理员密码
+# 在本地测试时，复制此文件为 .dev.vars 并修改管理员密码与百度地图API密钥
 ADMIN_PASSWORD=<your-password-here>
+BAIDU_AK=<your-baidu-ak-here>

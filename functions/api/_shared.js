@@ -1,6 +1,39 @@
 export const LIST_KEY = 'landmarks:list';
+export const CONFIG_KEY = 'config';
 
-async function getDefaultLandmarks(env) {
+let defaultConfigCache = null;
+
+async function getDefaultConfig(env) {
+  if (defaultConfigCache) {
+    return defaultConfigCache;
+  }
+
+  if (!env.ASSETS) {
+    console.warn('ASSETS not available, using fallback config');
+    return {
+      region: '上海'
+    };
+  }
+
+  try {
+    const response = await env.ASSETS.fetch(new Request('http://localhost/assets/default-config.json'));
+    if (!response.ok) {
+      throw new Error(`Failed to fetch default config: ${response.status}`);
+    }
+    const data = await response.json();
+    defaultConfigCache = data.config || {
+      region: '上海'
+    };
+    return defaultConfigCache;
+  } catch (e) {
+    console.error('Failed to read default config from file:', e);
+    return {
+      region: '上海'
+    };
+  }
+}
+
+export async function getDefaultLandmarks(env) {
   if (!env.ASSETS) {
     console.warn('ASSETS not available, using fallback defaults');
     return [
@@ -22,11 +55,27 @@ async function getDefaultLandmarks(env) {
   }
 
   try {
-    const response = await env.ASSETS.fetch(new Request('http://localhost/assets/default-landmarks.json'));
+    const response = await env.ASSETS.fetch(new Request('http://localhost/assets/default-config.json'));
     if (!response.ok) {
-      throw new Error(`Failed to fetch default landmarks: ${response.status}`);
+      throw new Error(`Failed to fetch default config: ${response.status}`);
     }
-    return await response.json();
+    const data = await response.json();
+    return data.landmarks || [
+      {
+        id: 'zhou-gongguan',
+        name: '周公馆',
+        address: '黄浦区思南路73号',
+        x: 69.5,
+        y: 55.2,
+        icon: 'fa-location-dot',
+        color: '#4285f4',
+        description: '周公馆位于上海市黄浦区思南路73号，是中国共产党早期在上海的重要活动场所。',
+        imageUrl: '',
+        enabled: true,
+        createdAt: 1718900000000,
+        updatedAt: Date.now()
+      }
+    ];
   } catch (e) {
     console.error('Failed to read default landmarks from file:', e);
     return [
@@ -47,6 +96,8 @@ async function getDefaultLandmarks(env) {
     ];
   }
 }
+
+export { getDefaultConfig };
 
 export async function getAllLandmarks(env) {
   if (!env.LANDMARKS) {
