@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "瑞金二路街道便民地图应用 - 基于 Cloudflare Pages + KV",
   "scripts": {
-    "dev": "npx wrangler pages dev public --kv LANDMARKS --persist-to .wrangler/state",
+    "dev": "npx wrangler pages dev public --kv LANDMARKS --persist-to .wrangler/state --compatibility-date=2026-07-19",
     "deploy": "wrangler pages deploy public"
   },
   "devDependencies": {

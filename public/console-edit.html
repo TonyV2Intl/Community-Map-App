@@ -12,6 +12,8 @@
             font-size: 13px;
             color: var(--cmap-foreground);
             background: var(--color-neutral-100);
+            overflow: auto !important;
+            height: auto !important;
         }
         .edit-main {
             padding-bottom: calc(20px + env(safe-area-inset-bottom));
@@ -520,17 +522,27 @@
         }
         .icon-search-grid button {
             width: 100%;
-            aspect-ratio: 1;
             border: 1px solid var(--cmap-border);
             border-radius: var(--cmap-radius-sm);
             background: white;
             cursor: pointer;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            gap: 2px;
+            padding: 6px 2px;
+            font-size: 16px;
             color: var(--cmap-foreground);
             transition: background 0.1s, border-color 0.1s;
+        }
+        .icon-search-grid button .icon-label {
+            font-size: 9px;
+            max-width: 100%;
+            line-height: 1.2;
+            color: var(--cmap-muted-foreground);
+            word-break: break-all;
+            text-align: center;
         }
         .icon-search-grid button:hover {
             background: var(--cmap-muted);
@@ -759,14 +771,14 @@
                 <div style="margin-top: 16px;">
                     <label class="g-label" style="margin-bottom: 8px;">颜色</label>
                     <div class="color-row">
-                        <button type="button" class="clr-opt active" data-color="#4285f4" onclick="selectColor(this)"></button>
-                        <button type="button" class="clr-opt" data-color="#ea4335" onclick="selectColor(this)"></button>
-                        <button type="button" class="clr-opt" data-color="#34a853" onclick="selectColor(this)"></button>
-                        <button type="button" class="clr-opt" data-color="#fbbc05" onclick="selectColor(this)"></button>
-                        <button type="button" class="clr-opt" data-color="#8e44ad" onclick="selectColor(this)"></button>
-                        <button type="button" class="clr-opt" data-color="#0e1115" onclick="selectColor(this)"></button>
-                        <button type="button" class="clr-opt" data-color="#f538a0" onclick="selectColor(this)"></button>
-                        <button type="button" class="clr-opt" data-color="#16a085" onclick="selectColor(this)"></button>
+                        <button type="button" class="clr-opt active" data-color="#4285f4" onclick="selectColor(this)" style="background:#4285f4"></button>
+                        <button type="button" class="clr-opt" data-color="#ea4335" onclick="selectColor(this)" style="background:#ea4335"></button>
+                        <button type="button" class="clr-opt" data-color="#34a853" onclick="selectColor(this)" style="background:#34a853"></button>
+                        <button type="button" class="clr-opt" data-color="#fbbc05" onclick="selectColor(this)" style="background:#fbbc05"></button>
+                        <button type="button" class="clr-opt" data-color="#8e44ad" onclick="selectColor(this)" style="background:#8e44ad"></button>
+                        <button type="button" class="clr-opt" data-color="#0e1115" onclick="selectColor(this)" style="background:#0e1115"></button>
+                        <button type="button" class="clr-opt" data-color="#f538a0" onclick="selectColor(this)" style="background:#f538a0"></button>
+                        <button type="button" class="clr-opt" data-color="#16a085" onclick="selectColor(this)" style="background:#16a085"></button>
                         <div class="color-custom-wrapper">
                             <input type="color" id="custom-color" value="#4285f4" title="自定义颜色" oninput="selectCustomColor(this.value)" />
                         </div>

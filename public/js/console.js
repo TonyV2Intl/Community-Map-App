@@ -1,3 +1,6 @@
+const LIST_KEY = 'landmarks:list';
+const CONFIG_KEY = 'config';
+
 let landmarks = [];
 let filteredLandmarks = [];
 let deleteTargetId = null;
@@ -393,48 +396,36 @@ async function viewKvRaw() {
         
         body.replaceChildren();
         
-        // 显示地标数据
-        if (!data.exists || !data.raw) {
-            const emptyDiv = document.createElement('div');
-            emptyDiv.className = 'empty-kv';
+        // 合并所有KV数据
+        const kvData = {};
+        
+        // 添加地标数据
+        if (data.exists && data.raw) {
+            kvData[LIST_KEY] = JSON.parse(data.raw);
+        } else {
+            kvData[LIST_KEY] = null;
+        }
+        
+        // 添加配置数据
+        kvData[CONFIG_KEY] = data.config || null;
+        
+        // 检查是否所有数据都为空
+        const allEmpty = Object.values(kvData).every(v => v === null);
+        
+        if (allEmpty) {
+            body.classList.add('empty-kv');
             const emptyIcon = document.createElement('i');
             emptyIcon.className = 'fa-solid fa-database';
             emptyIcon.style.fontSize = '32px';
             emptyIcon.style.marginBottom = '8px';
             emptyIcon.style.opacity = '0.5';
-            emptyDiv.appendChild(emptyIcon);
+            body.appendChild(emptyIcon);
             const emptyP = document.createElement('p');
-            emptyP.textContent = '地标数据为空';
-            emptyDiv.appendChild(emptyP);
-            body.appendChild(emptyDiv);
+            emptyP.textContent = 'KV数据为空';
+            body.appendChild(emptyP);
         } else {
-            const landmarkHeader = document.createElement('h4');
-            landmarkHeader.textContent = '地标数据';
-            landmarkHeader.style.fontSize = '14px';
-            landmarkHeader.style.fontWeight = '600';
-            landmarkHeader.style.marginBottom = '8px';
-            landmarkHeader.style.color = 'var(--cmap-foreground)';
-            body.appendChild(landmarkHeader);
-            
-            const pre = document.createElement('pre');
-            pre.textContent = data.raw;
-            body.appendChild(pre);
-        }
-        
-        // 显示配置数据
-        if (data.config) {
-            const configHeader = document.createElement('h4');
-            configHeader.textContent = '配置数据';
-            configHeader.style.fontSize = '14px';
-            configHeader.style.fontWeight = '600';
-            configHeader.style.marginTop = '16px';
-            configHeader.style.marginBottom = '8px';
-            configHeader.style.color = 'var(--cmap-foreground)';
-            body.appendChild(configHeader);
-            
-            const configPre = document.createElement('pre');
-            configPre.textContent = JSON.stringify(data.config, null, 2);
-            body.appendChild(configPre);
+            body.classList.remove('empty-kv');
+            body.textContent = JSON.stringify(kvData, null, 2);
         }
     } catch (e) {
         console.error('获取KV失败:', e);
@@ -467,7 +458,7 @@ function openConfigModal() {
         .then(res => res.json())
         .then(config => {
             document.getElementById('config-region').value = config.region || '';
-            document.getElementById('config-baidu-ak').value = config.baidu_ak || '';
+            document.getElementById('config-boundary-buffer').value = config.boundaryBuffer !== undefined ? Math.round(config.boundaryBuffer * 100) : 10;
         })
         .catch(e => {
             console.warn('加载配置失败', e);
@@ -480,10 +471,10 @@ function closeConfigModal() {
 
 async function saveConfig() {
     const region = document.getElementById('config-region').value.trim();
-    const src = document.getElementById('config-src').value.trim();
+    const boundaryBuffer = parseFloat(document.getElementById('config-boundary-buffer').value) / 100 || 0.1;
     
-    if (!region || !src) {
-        showToast('请填写完整配置');
+    if (!region) {
+        showToast('请填写城市区域');
         return;
     }
     
@@ -493,7 +484,7 @@ async function saveConfig() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ region, src })
+            body: JSON.stringify({ region, boundaryBuffer })
         });
         
         const data = await res.json();

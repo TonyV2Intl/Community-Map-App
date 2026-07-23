@@ -9,6 +9,8 @@
     <style>
         body {
             padding-bottom: env(safe-area-inset-bottom);
+            overflow: auto;
+            height: auto;
         }
         .admin-main {
             min-height: calc(100vh - 48px);
@@ -233,11 +235,7 @@
         }
         .kv-modal-body {
             flex: 1;
-            padding: 16px;
-            overflow: auto;
-        }
-        .kv-modal-body pre {
-            margin: 0;
+            margin: 16px;
             padding: 12px;
             background: #1e1e1e;
             color: #d4d4d4;
@@ -250,10 +248,19 @@
             overflow: auto;
             font-family: 'Consolas', 'Monaco', monospace;
         }
-        .kv-modal-body .empty-kv {
+        .kv-modal-body.empty-kv {
             text-align: center;
             color: var(--cmap-muted-foreground);
             padding: 20px;
+            background: transparent;
+            font-family: inherit;
+            white-space: normal;
+            word-break: normal;
+        }
+        .config-modal-body {
+            flex: 1;
+            padding: 16px;
+            overflow: auto;
         }
         .config-form {
             display: flex;
@@ -462,19 +469,20 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-            <div class="kv-modal-body">
+            <div class="config-modal-body">
                 <div class="config-form">
                     <div class="config-item">
                         <label>城市区域 (region)</label>
                         <input type="text" id="config-region" placeholder="如：上海" />
                         <span class="config-desc">百度地图导航时使用的城市区域</span>
                     </div>
-
                     <div class="config-item">
-                        <label>百度地图AK</label>
-                        <input type="text" id="config-baidu-ak" placeholder="通过环境变量 BAIDU_AK 配置" disabled />
-                        <span class="config-desc">在 Cloudflare 控制台设置环境变量 BAIDU_AK，配置后可使用百度地图App调起导航</span>
+                        <label>边界缓冲 (%)</label>
+                        <input type="number" id="config-boundary-buffer" placeholder="10" min="0" max="50" step="1" />
+                        <span class="config-desc">地图拖动范围超出图片尺寸的百分比，默认10%</span>
                     </div>
+
+
                 </div>
             </div>
             <div class="kv-modal-footer">

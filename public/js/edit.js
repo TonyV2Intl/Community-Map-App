@@ -154,6 +154,7 @@ function selectColor(btn) {
     btn.classList.add('active');
     selectedColor = btn.getAttribute('data-color');
     document.getElementById('custom-color').value = selectedColor;
+    updateRGBFromColor(selectedColor);
     updateIconPreview();
 }
 
@@ -613,6 +614,10 @@ function renderIconGrid(icons) {
         const iconEl = document.createElement('i');
         iconEl.className = className;
         btn.appendChild(iconEl);
+        const label = document.createElement('span');
+        label.className = 'icon-label';
+        label.textContent = icon.name;
+        btn.appendChild(label);
         btn.title = icon.name;
         btn.setAttribute('data-icon-name', icon.name);
         if (`fa-${icon.name}` === selectedIcon) {

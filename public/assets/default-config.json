@@ -114,6 +114,7 @@
         }
     ],
     "config": {
-        "region": "上海"
+        "region": "上海",
+        "boundaryBuffer": 0.1
     }
 }

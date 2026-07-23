@@ -32,7 +32,7 @@ function applyTransform() {
 }
 
 const MAX_SCALE = 5;
-const BOUNDARY_BUFFER = 0.2;
+let BOUNDARY_BUFFER = 0.1;
 let scale = 1;
 let translateX = 0;
 let translateY = 0;
@@ -89,16 +89,24 @@ function clampBounds() {
     const ww = iw * scale;
     const wh = ih * scale;
 
-    const bufferW = ww * BOUNDARY_BUFFER;
-    const bufferH = wh * BOUNDARY_BUFFER;
+    // 当图片小于视口时，强制居中
+    if (ww <= vw) {
+        translateX = (vw - ww) / 2;
+    } else {
+        const bufferW = ww * BOUNDARY_BUFFER;
+        const minTranslateX = vw - ww - bufferW;
+        const maxTranslateX = bufferW;
+        translateX = Math.max(minTranslateX, Math.min(maxTranslateX, translateX));
+    }
 
-    const minTranslateX = vw - ww - bufferW;
-    const maxTranslateX = bufferW;
-    const minTranslateY = vh - wh - bufferH;
-    const maxTranslateY = bufferH;
-
-    translateX = Math.max(minTranslateX, Math.min(maxTranslateX, translateX));
-    translateY = Math.max(minTranslateY, Math.min(maxTranslateY, translateY));
+    if (wh <= vh) {
+        translateY = (vh - wh) / 2;
+    } else {
+        const bufferH = wh * BOUNDARY_BUFFER;
+        const minTranslateY = vh - wh - bufferH;
+        const maxTranslateY = bufferH;
+        translateY = Math.max(minTranslateY, Math.min(maxTranslateY, translateY));
+    }
 }
 
 
@@ -126,7 +134,12 @@ function zoomIn() {
 
 function zoomOut() {
     const newScale = Math.max(minScale, scale / 1.25);
-    zoomAtCenter(newScale);
+    // 如果缩放到最小级别，直接居中显示
+    if (newScale <= minScale) {
+        centerMap();
+    } else {
+        zoomAtCenter(newScale);
+    }
 }
 
 function zoomAtCenter(newScale) {
@@ -183,21 +196,26 @@ viewport.addEventListener('touchmove', function(e) {
             applyTransform();
         }
     } else if (e.touches.length === 2) {
-        const dist = getDistance(e.touches[0], e.touches[1]);
-        const mid = getMidpoint(e.touches[0], e.touches[1]);
+            const dist = getDistance(e.touches[0], e.touches[1]);
+            const mid = getMidpoint(e.touches[0], e.touches[1]);
 
-        const rect = viewport.getBoundingClientRect();
-        const mx = mid.x - rect.left;
-        const my = mid.y - rect.top;
+            const rect = viewport.getBoundingClientRect();
+            const mx = mid.x - rect.left;
+            const my = mid.y - rect.top;
 
-        scale = Math.min(MAX_SCALE, Math.max(minScale, initialScale * (dist / initialPinchDist)));
-        const ratio = scale / initialScale;
-        translateX = mx - ratio * (mx - initialTranslateX);
-        translateY = my - ratio * (my - initialTranslateY);
-
-        clampBounds();
-        applyTransform();
-    }
+            const newScale = Math.min(MAX_SCALE, Math.max(minScale, initialScale * (dist / initialPinchDist)));
+            // 如果缩放到最小级别，直接居中显示
+            if (newScale <= minScale) {
+                centerMap();
+            } else {
+                scale = newScale;
+                const ratio = scale / initialScale;
+                translateX = mx - ratio * (mx - initialTranslateX);
+                translateY = my - ratio * (my - initialTranslateY);
+                clampBounds();
+                applyTransform();
+            }
+        }
 }, { passive: true });
 
 viewport.addEventListener('touchend', function(e) {
@@ -241,17 +259,22 @@ viewport.addEventListener('wheel', function(e) {
     const factor = e.deltaY > 0 ? 0.9 : 1.1;
     const newScale = Math.min(MAX_SCALE, Math.max(minScale, scale * factor));
 
-    const rect = viewport.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    // 如果缩放到最小级别，直接居中显示
+    if (newScale <= minScale) {
+        centerMap();
+    } else {
+        const rect = viewport.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
 
-    const ratio = newScale / scale;
-    translateX = mx - ratio * (mx - translateX);
-    translateY = my - ratio * (my - translateY);
-    scale = newScale;
+        const ratio = newScale / scale;
+        translateX = mx - ratio * (mx - translateX);
+        translateY = my - ratio * (my - translateY);
+        scale = newScale;
 
-    clampBounds();
-    applyTransform();
+        clampBounds();
+        applyTransform();
+    }
 }, { passive: false });
 
 function getIconClass(icon) {
@@ -761,8 +784,8 @@ async function loadConfig() {
         if (res.ok) {
             const config = await res.json();
             if (config.region) mapConfig.region = config.region;
-
             if (config.baidu_ak) mapConfig.baidu_ak = config.baidu_ak;
+            if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
             return;
         }
     } catch (e) {

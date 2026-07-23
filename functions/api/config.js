@@ -24,16 +24,18 @@ export async function onRequest(context) {
         // 返回配置，baidu_ak 从环境变量获取
         return jsonResponse({
             region: config.region || '上海',
+            boundaryBuffer: config.boundaryBuffer !== undefined ? config.boundaryBuffer : 0.1,
             baidu_ak: env.BAIDU_AK || ''
         });
     }
     
     if (request.method === 'POST') {
-        // 保存配置到 KV（只保存 region）
+        // 保存配置到 KV（保存 region 和 boundaryBuffer）
         try {
             const body = await request.json();
             const config = {
-                region: body.region || '上海'
+                region: body.region || '上海',
+                boundaryBuffer: body.boundaryBuffer !== undefined ? parseFloat(body.boundaryBuffer) : 0.1
             };
             
             await env.LANDMARKS.put(CONFIG_KEY, JSON.stringify(config));
