@@ -669,6 +669,8 @@ async function geocodeFromAddress() {
             }
         } else if (res.status === 401) {
             showToast('请先登录控制台');
+        } else if (res.status === 502) {
+            showToast('地理编码服务不可用，请检查 TIANDITU_KEY 配置');
         } else {
             showToast('地理编码失败，请手动填写');
         }

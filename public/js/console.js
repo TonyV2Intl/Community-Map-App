@@ -217,24 +217,41 @@ async function confirmDelete() {
     cancelDelete();
 }
 
-function exportData() {
+async function exportData() {
     if (landmarks.length === 0) {
         showToast('暂无数据可导出');
         return;
     }
 
-    const data = JSON.stringify(landmarks, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const date = new Date().toISOString().split('T')[0];
-    a.download = `landmarks-backup-${date}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast('数据导出成功');
+    try {
+        // 同时获取配置数据
+        let config = null;
+        const configRes = await fetch('/api/config');
+        if (configRes.ok) {
+            config = await configRes.json();
+        }
+
+        const exportData = {
+            landmarks: landmarks,
+            config: config
+        };
+
+        const data = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const date = new Date().toISOString().split('T')[0];
+        a.download = `community-map-backup-${date}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('数据导出成功');
+    } catch (e) {
+        console.error('导出失败:', e);
+        showToast('导出失败，请重试');
+    }
 }
 
 function triggerImport() {
@@ -256,32 +273,62 @@ async function handleImportFile(input) {
             return;
         }
 
-        if (!Array.isArray(data)) {
-            showToast('文件格式错误：应为数组');
+        let landmarksArr = null;
+        let configData = null;
+
+        // 检测新格式 { landmarks: [...], config: {...} } 或旧格式 [...]
+        if (Array.isArray(data)) {
+            // 旧格式：纯地标数组
+            landmarksArr = data;
+        } else if (data.landmarks && Array.isArray(data.landmarks)) {
+            // 新格式：包含 landmarks 和 config 的对象
+            landmarksArr = data.landmarks;
+            configData = data.config || null;
+        } else {
+            showToast('文件格式错误：缺少 landmarks 数组');
             input.value = '';
             return;
         }
 
-        if (data.length === 0) {
+        if (landmarksArr.length === 0) {
             showToast('文件内容为空');
             input.value = '';
             return;
         }
 
-        const res = await fetch('/api/landmarks', {
+        // 导入地标
+        const lmRes = await fetch('/api/landmarks', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(landmarksArr)
         });
 
-        if (res.ok) {
-            const result = await res.json();
-            showToast(`导入成功，共 ${result.count} 个地标`);
-            await loadLandmarks();
-        } else {
-            const err = await res.json();
-            showToast('导入失败：' + (err.error || '未知错误'));
+        if (!lmRes.ok) {
+            const err = await lmRes.json();
+            showToast('导入地标失败：' + (err.error || '未知错误'));
+            input.value = '';
+            return;
         }
+
+        const lmResult = await lmRes.json();
+        let msg = `导入成功，共 ${lmResult.count} 个地标`;
+
+        // 导入配置（如果有）
+        if (configData) {
+            const cfgRes = await fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(configData)
+            });
+            if (cfgRes.ok) {
+                msg += '，配置已同步';
+            } else {
+                msg += '，但配置导入失败';
+            }
+        }
+
+        showToast(msg);
+        await loadLandmarks();
     } catch (e) {
         console.error('导入失败:', e);
         showToast('导入失败，请检查文件');

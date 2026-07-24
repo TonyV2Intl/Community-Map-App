@@ -25,7 +25,7 @@ export async function onRequestGet(context) {
     if (result) {
       return jsonResponse(result);
     }
-    return jsonResponse({ error: '未找到该地址的坐标', lng: null, lat: null }, 404);
+    return jsonResponse({ error: '地理编码服务不可用，请检查 TIANDITU_KEY 配置' }, 502);
   } catch (e) {
     console.error('GET /api/geocode error:', e);
     return jsonResponse({ error: 'Internal server error' }, 500);

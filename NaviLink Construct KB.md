@@ -8,7 +8,7 @@
 官网文档示例：[https://apis.map.qq.com/uri/v1/routeplan?type=bus&from=我的家&fromcoord=39.980683,116.302&to=中关村&tocoord=39.9836,116.3164&policy=1&referer=OB4BZ-D4W3U-B7VVO-4PJWW-6TKDJ-WPB77]
 最简：[https://apis.map.qq.com/uri/v1/routeplan?type=bus&to=中关村]
 最简效果：自动获取用户当前位置作为起点，若无法定位需要用户手动输入起点并选择起点POI；需要用户点选终点POI（指定type为walk时，若距离过长，步行导航结果不会显示；如果是用户手动输入起点，会弹出建议驾车提示，点击提示链接可跳转至驾车路线规划；如果是自动获取用户位置作为起点，则只有建议尝试其他交通方式的提示，没有链接）
-建议：[https://apis.map.qq.com/uri/v1/routeplan?type=bus&to=中关村&tocoord=39.9836,116.3164&coord_type=1]（coord_type默认=2；=1为WGS84坐标系；=2为腾讯自有坐标系，不知道是不是GCJ-02）
+建议：[https://apis.map.qq.com/uri/v1/routeplan?type=bus&to=中关村&tocoord=39.9836,116.3164&coord_type=1]（coord_type默认=2；=1为WGS84坐标系；=2为GCJ-02坐标系）
 建议效果：直接展示路线，不再需要用户点选终点POI
 
 ## 高德地图

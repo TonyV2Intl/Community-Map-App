@@ -206,10 +206,11 @@ export async function geocodeAddress(env, address) {
 
   try {
     const ds = JSON.stringify({ keyWord: address.trim() });
-    const url = `http://api.tianditu.gov.cn/geocoder?ds=${encodeURIComponent(ds)}&tk=${encodeURIComponent(key)}`;
+    const url = `https://api.tianditu.gov.cn/geocoder?ds=${encodeURIComponent(ds)}&tk=${encodeURIComponent(key)}`;
     const response = await fetch(url);
     if (!response.ok) {
-      console.error('天地图地理编码请求失败:', response.status);
+      const body = await response.text();
+      console.error('天地图地理编码请求失败:', response.status, body);
       return null;
     }
     const data = await response.json();
@@ -219,10 +220,10 @@ export async function geocodeAddress(env, address) {
         lat: data.location.lat
       };
     }
-    console.warn('天地图地理编码未找到结果:', data.msg || '未知错误');
+    console.warn('天地图地理编码未找到结果:', JSON.stringify(data));
     return null;
   } catch (e) {
-    console.error('天地图地理编码异常:', e);
+    console.error('天地图地理编码异常:', e.message);
     return null;
   }
 }

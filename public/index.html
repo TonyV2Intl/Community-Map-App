@@ -280,12 +280,6 @@
         .copy-nav-btn i {
             font-size: 18px;
         }
-        .nav-platforms {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-top: 12px;
-        }
         .nav-platform-item {
             display: flex;
             align-items: center;
@@ -564,7 +558,7 @@
 
         <div id="map-viewport">
             <div id="map-transform-wrapper">
-                <img src="/assets/map.png" alt="瑞金二路街道便民地图底图" draggable="false" />
+                <img src="/assets/default-map.webp" alt="瑞金二路街道便民地图底图" draggable="false" />
             </div>
             <div id="markers-container"></div>
             <div class="map-controls">
@@ -610,34 +604,6 @@
             </div>
         </div>
 
-        <div class="nav-platforms" id="nav-platforms">
-            <div class="nav-platforms-backdrop" onclick="closeNavPanel()"></div>
-            <div class="nav-platforms-panel">
-                <div class="nav-platforms-title">选择导航地图</div>
-                <div class="nav-platform-item">
-                    <span class="nav-platform-name">百度地图</span>
-                    <div class="nav-platform-actions">
-                        <button class="nav-go-btn" onclick="handleNavigate('baidu')">导航</button>
-                        <button class="nav-copy-btn" onclick="copyNavUrl('baidu')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
-                    </div>
-                </div>
-                <div class="nav-platform-item">
-                    <span class="nav-platform-name">高德地图</span>
-                    <div class="nav-platform-actions">
-                        <button class="nav-go-btn" id="amap-nav-btn" onclick="handleNavigate('amap')" style="background: #07c160;">导航</button>
-                        <button class="nav-copy-btn" id="amap-copy-btn" onclick="copyNavUrl('amap')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
-                    </div>
-                </div>
-                <div class="nav-platform-item">
-                    <span class="nav-platform-name">腾讯地图</span>
-                    <div class="nav-platform-actions">
-                        <button class="nav-go-btn" onclick="handleNavigate('tencent')" style="background: #006eff;">导航</button>
-                        <button class="nav-copy-btn" onclick="copyNavUrl('tencent')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="menu-overlay" id="menu-overlay">
             <div class="menu-header">
                 <button class="menu-close" onclick="toggleMenu()">
@@ -657,7 +623,35 @@
         </div>
     </main>
 
-    <script src="https://unpkg.com/gcoord@1.0.7/dist/gcoord.global.prod.js"></script>
+    <div class="nav-platforms" id="nav-platforms">
+        <div class="nav-platforms-backdrop" onclick="closeNavPanel()"></div>
+        <div class="nav-platforms-panel">
+            <div class="nav-platforms-title">选择导航地图</div>
+            <div class="nav-platform-item">
+                <span class="nav-platform-name">百度地图</span>
+                <div class="nav-platform-actions">
+                    <button class="nav-go-btn" onclick="handleNavigate('baidu')">导航</button>
+                    <button class="nav-copy-btn" onclick="copyNavUrl('baidu')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
+                </div>
+            </div>
+            <div class="nav-platform-item">
+                <span class="nav-platform-name">高德地图</span>
+                <div class="nav-platform-actions">
+                    <button class="nav-go-btn" id="amap-nav-btn" onclick="handleNavigate('amap')" style="background: #07c160;">导航</button>
+                    <button class="nav-copy-btn" id="amap-copy-btn" onclick="copyNavUrl('amap')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
+                </div>
+            </div>
+            <div class="nav-platform-item">
+                <span class="nav-platform-name">腾讯地图</span>
+                <div class="nav-platform-actions">
+                    <button class="nav-go-btn" onclick="handleNavigate('tencent')" style="background: #006eff;">导航</button>
+                    <button class="nav-copy-btn" onclick="copyNavUrl('tencent')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/gcoord.min.js"></script>
     <script src="/js/map.js"></script>
 </body>
 </html>

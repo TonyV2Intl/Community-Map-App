@@ -1,8 +1,7 @@
 let landmarks = [];
 let currentLandmark = null;
 let mapConfig = {
-    region: '上海',
-    tencentReferer: 'community-map'
+    region: '上海'
 };
 
 function escapeHtml(text) {
@@ -477,7 +476,7 @@ function buildBaiduNavUrl(originLng, originLat, destination, destLng, destLat) {
     var params = [];
     params.push('destination=' + destination);
     params.push('mode=walking');
-    params.push('region=' + encodeURIComponent(mapConfig.region));
+    params.push('destination_region=' + encodeURIComponent(mapConfig.region));
     params.push('output=html');
     params.push('src=' + encodeURIComponent(window.location.hostname));
 
@@ -494,7 +493,7 @@ function buildAmapNavUrl(originLng, originLat, destination, destLng, destLat) {
     var params = [];
 
     if (destLng !== null && destLng !== undefined && destLat !== null && destLat !== undefined) {
-        params.push('to=' + destLng + ',' + destLat + ',endpoint');
+        params.push('to=' + destLng + ',' + destLat + ',' + encodeURIComponent(destination));
     } else {
         params.push('to=' + destination);
     }
@@ -509,10 +508,17 @@ function buildTencentNavUrl(originLng, originLat, destination, destLng, destLat)
     var params = [];
     params.push('type=walk');
     params.push('to=' + destination);
-    params.push('referer=' + encodeURIComponent(mapConfig.tencentReferer));
 
     if (destLng !== null && destLng !== undefined && destLat !== null && destLat !== undefined) {
-        params.push('tocoord=' + destLat + ',' + destLng);
+        // GCJ-02 → WGS84，配合 coord_type=1
+        if (typeof gcoord !== 'undefined' && gcoord.transform) {
+            var wgsCoord = gcoord.transform([destLng, destLat], gcoord.GCJ02, gcoord.WGS84);
+            params.push('tocoord=' + wgsCoord[1] + ',' + wgsCoord[0]);
+            params.push('coord_type=1');
+        } else {
+            // gcoord 未加载，直接使用 GCJ-02（腾讯默认坐标系）
+            params.push('tocoord=' + destLat + ',' + destLng);
+        }
     }
     
     return baseUrl + '?' + params.join('&');
@@ -858,7 +864,6 @@ async function loadConfig() {
             const config = await res.json();
             if (config.region) mapConfig.region = config.region;
             if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
-            if (config.tencentReferer) mapConfig.tencentReferer = config.tencentReferer;
             return;
         }
     } catch (e) {
@@ -873,7 +878,6 @@ async function loadConfig() {
             const config = data.config || {};
             if (config.region) mapConfig.region = config.region;
             if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
-            if (config.tencentReferer) mapConfig.tencentReferer = config.tencentReferer;
         }
     } catch (e) {
         console.warn('加载配置失败，使用默认配置', e);

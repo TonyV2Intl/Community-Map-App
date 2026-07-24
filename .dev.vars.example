@@ -1,4 +1,4 @@
 # 在本地测试时，复制此文件为 .dev.vars 并修改管理员密码
 ADMIN_PASSWORD=<your-password-here>
-# 天地图 API Key，用于地理编码（地址 → 经纬度）
+# 天地图 API Key，用于地理编码（地址 → 经纬度），注意 Key 类型必须为 服务器端 （而不是浏览器端）
 TIANDITU_KEY=<your-tianditu-key-here>
