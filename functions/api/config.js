@@ -1,4 +1,4 @@
-import { CONFIG_KEY, getDefaultConfig, corsHeaders, jsonResponse } from './_shared';
+import { CONFIG_KEY, DEFAULT_REGION, DEFAULT_BOUNDARY_BUFFER, corsHeaders, jsonResponse } from './_shared';
 
 export async function onRequest(context) {
     const { request, env } = context;
@@ -8,7 +8,7 @@ export async function onRequest(context) {
         
         // 从 KV 获取配置
         try {
-            const kvConfig = await env.LANDMARKS.get(CONFIG_KEY);
+            const kvConfig = await env.MAPAPP.get(CONFIG_KEY);
             if (kvConfig) {
                 config = JSON.parse(kvConfig);
             }
@@ -16,15 +16,18 @@ export async function onRequest(context) {
             console.error('从KV读取配置失败:', e);
         }
         
-        // 如果 KV 中没有，从默认配置文件获取
+        // 如果 KV 中没有，返回默认值
         if (!config) {
-            config = await getDefaultConfig(env);
+            return jsonResponse({
+                region: DEFAULT_REGION,
+                boundaryBuffer: DEFAULT_BOUNDARY_BUFFER
+            });
         }
         
         // 返回配置
         return jsonResponse({
-            region: config.region || '上海',
-            boundaryBuffer: config.boundaryBuffer !== undefined ? config.boundaryBuffer : 0.1
+            region: config.region || DEFAULT_REGION,
+            boundaryBuffer: config.boundaryBuffer !== undefined ? config.boundaryBuffer : DEFAULT_BOUNDARY_BUFFER
         });
     }
     
@@ -33,11 +36,11 @@ export async function onRequest(context) {
         try {
             const body = await request.json();
             const config = {
-                region: body.region || '上海',
-                boundaryBuffer: body.boundaryBuffer !== undefined ? parseFloat(body.boundaryBuffer) : 0.1
+                region: body.region || DEFAULT_REGION,
+                boundaryBuffer: body.boundaryBuffer !== undefined ? parseFloat(body.boundaryBuffer) : DEFAULT_BOUNDARY_BUFFER
             };
             
-            await env.LANDMARKS.put(CONFIG_KEY, JSON.stringify(config));
+            await env.MAPAPP.put(CONFIG_KEY, JSON.stringify(config));
             
             return jsonResponse({ success: true });
         } catch (e) {

@@ -5,7 +5,7 @@ compatibility_date = "2026-07-19"
 pages_build_output_dir = "public"
 
 [[kv_namespaces]]
-binding = "LANDMARKS"
+binding = "MAPAPP"
 id = "<your-kv-namespace-id-here>"
 
 [vars]

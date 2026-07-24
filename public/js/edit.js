@@ -4,6 +4,10 @@ let selectedIcon = 'fa-location-dot';
 let selectedColor = '#4285f4';
 let landmarkEnabled = true;
 
+const PICKER_MAX_SCALE = 5;
+const PICKER_ZOOM_FACTOR = 1.25;
+const PICKER_BOUNDARY_BUFFER = 0.2;
+
 let pickerScale = 1;
 let pickerTranslateX = 0;
 let pickerTranslateY = 0;
@@ -340,7 +344,7 @@ function clampPickerBounds() {
     const ww = iw * pickerScale;
     const wh = ih * pickerScale;
 
-    const BOUNDARY_BUFFER = 0.2;
+    const BOUNDARY_BUFFER = PICKER_BOUNDARY_BUFFER;
     const bufferW = ww * BOUNDARY_BUFFER;
     const bufferH = wh * BOUNDARY_BUFFER;
     
@@ -354,8 +358,8 @@ function clampPickerBounds() {
 }
 
 function pickerZoomIn() {
-    const newScale = pickerScale * 1.25;
-    if (newScale > 5) return;
+    const newScale = pickerScale * PICKER_ZOOM_FACTOR;
+    if (newScale > PICKER_MAX_SCALE) return;
     
     const img = document.getElementById('picker-img');
     const iw = img.naturalWidth || img.offsetWidth;
@@ -374,7 +378,7 @@ function pickerZoomIn() {
 }
 
 function pickerZoomOut() {
-    const newScale = pickerScale / 1.25;
+    const newScale = pickerScale / PICKER_ZOOM_FACTOR;
     if (newScale < pickerMinScale) {
         pickerScale = pickerMinScale;
         initPickerTransform();

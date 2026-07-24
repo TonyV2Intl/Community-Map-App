@@ -345,6 +345,121 @@
         .kv-clear-btn:hover {
             background: #fee2e2;
         }
+        .map-modal-body {
+            flex: 1;
+            padding: 16px;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .map-preview {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            background: var(--cmap-muted);
+            border-radius: var(--cmap-radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .map-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .map-preview .map-placeholder {
+            color: var(--cmap-muted-foreground);
+            font-size: 14px;
+            text-align: center;
+        }
+        .map-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--cmap-muted-foreground);
+        }
+        .map-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .map-info-row .map-info-label {
+            color: var(--cmap-muted-foreground);
+        }
+        .map-info-row .map-info-value {
+            color: var(--cmap-foreground);
+            font-weight: 500;
+        }
+        .map-status-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .map-status-tag.custom {
+            background: #e6f4ea;
+            color: #1e7e34;
+        }
+        .map-status-tag.default {
+            background: var(--cmap-muted);
+            color: var(--cmap-muted-foreground);
+        }
+        .map-upload-area {
+            border: 2px dashed var(--cmap-border);
+            border-radius: var(--cmap-radius-md);
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .map-upload-area:hover {
+            border-color: var(--cmap-primary);
+            background: rgba(66, 133, 244, 0.04);
+        }
+        .map-upload-area i {
+            font-size: 28px;
+            color: var(--cmap-muted-foreground);
+            margin-bottom: 8px;
+        }
+        .map-upload-area p {
+            font-size: 13px;
+            color: var(--cmap-muted-foreground);
+            margin: 0;
+        }
+        .map-upload-area .map-upload-hint {
+            font-size: 11px;
+            color: var(--color-neutral-400);
+            margin-top: 4px;
+        }
+        .map-upload-input {
+            display: none;
+        }
+        .map-reset-btn {
+            padding: 8px 16px;
+            border-radius: var(--cmap-radius-md);
+            background: #fef2f2;
+            color: #dc2626;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+        }
+        .map-reset-btn:hover {
+            background: #fee2e2;
+        }
+        .map-reset-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         
     </style>
 </head>
@@ -370,6 +485,10 @@
                     <button type="button" class="action-btn" aria-label="导入数据" onclick="triggerImport()">
                         <i class="fa-solid fa-upload" style="font-size: 14px;"></i>
                         <span>导入</span>
+                    </button>
+                    <button type="button" class="action-btn" aria-label="底图管理" onclick="openMapModal()">
+                        <i class="fa-solid fa-image" style="font-size: 14px;"></i>
+                        <span>底图</span>
                     </button>
                     <button type="button" class="action-btn" aria-label="系统配置" onclick="openConfigModal()">
                         <i class="fa-solid fa-gear" style="font-size: 14px;"></i>
@@ -450,7 +569,11 @@
             <div class="kv-modal-footer">
                 <button class="kv-clear-btn" onclick="clearKvValue()">
                     <i class="fa-solid fa-trash"></i>
-                    清除
+                    清除KV值
+                </button>
+                <button class="kv-copy-btn" onclick="restoreDefaults()" style="background: #e6f4ea; color: #1e7e34;">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    还原默认
                 </button>
                 <button class="kv-copy-btn" onclick="copyKvValue()">
                     <i class="fa-solid fa-copy"></i>
@@ -472,7 +595,7 @@
             <div class="config-modal-body">
                 <div class="config-form">
                     <div class="config-item">
-                        <label>城市区域 (region)</label>
+                        <label>城市区域 (destination_region)</label>
                         <input type="text" id="config-region" placeholder="如：上海" />
                         <span class="config-desc">百度地图导航时使用的城市区域</span>
                     </div>
@@ -488,6 +611,57 @@
             <div class="kv-modal-footer">
                 <button class="kv-close-btn" onclick="closeConfigModal()">取消</button>
                 <button class="kv-copy-btn" onclick="saveConfig()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="kv-modal" id="map-modal">
+        <div class="kv-modal-box">
+            <div class="kv-modal-header">
+                <h3>底图管理</h3>
+                <button class="kv-modal-close" onclick="closeMapModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="map-modal-body">
+                <div class="map-preview" id="map-preview">
+                    <div class="map-placeholder"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>
+                </div>
+                <div class="map-info" id="map-info">
+                    <div class="map-info-row">
+                        <span class="map-info-label">状态</span>
+                        <span class="map-info-value" id="map-status">-</span>
+                    </div>
+                    <div class="map-info-row">
+                        <span class="map-info-label">格式</span>
+                        <span class="map-info-value" id="map-type">-</span>
+                    </div>
+                    <div class="map-info-row">
+                        <span class="map-info-label">大小</span>
+                        <span class="map-info-value" id="map-size">-</span>
+                    </div>
+                    <div class="map-info-row">
+                        <span class="map-info-label">文件名</span>
+                        <span class="map-info-value" id="map-name">-</span>
+                    </div>
+                    <div class="map-info-row">
+                        <span class="map-info-label">更新时间</span>
+                        <span class="map-info-value" id="map-updated">-</span>
+                    </div>
+                </div>
+                <div class="map-upload-area" onclick="triggerMapUpload()">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <p>点击上传新底图</p>
+                    <p class="map-upload-hint">支持 webp / png / jpeg，最大 10MB</p>
+                </div>
+                <input type="file" id="map-upload-input" class="map-upload-input" accept="image/webp,image/png,image/jpeg" onchange="handleMapUpload(this)" />
+                <button type="button" class="map-reset-btn" id="map-reset-btn" onclick="handleMapReset()" disabled>
+                    <i class="fa-solid fa-rotate-left"></i>
+                    恢复默认底图
+                </button>
+            </div>
+            <div class="kv-modal-footer">
+                <button class="kv-close-btn" onclick="closeMapModal()">关闭</button>
             </div>
         </div>
     </div>

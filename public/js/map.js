@@ -31,6 +31,7 @@ function applyTransform() {
 }
 
 const MAX_SCALE = 5;
+const ZOOM_FACTOR = 1.25;
 let BOUNDARY_BUFFER = 0.1;
 let scale = 1;
 let translateX = 0;
@@ -127,12 +128,12 @@ function centerMap() {
 }
 
 function zoomIn() {
-    const newScale = Math.min(MAX_SCALE, scale * 1.25);
+    const newScale = Math.min(MAX_SCALE, scale * ZOOM_FACTOR);
     zoomAtCenter(newScale);
 }
 
 function zoomOut() {
-    const newScale = Math.max(minScale, scale / 1.25);
+    const newScale = Math.max(minScale, scale / ZOOM_FACTOR);
     // 如果缩放到最小级别，直接居中显示
     if (newScale <= minScale) {
         centerMap();

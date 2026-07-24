@@ -72,7 +72,7 @@ npm run dev
 
 **命令说明**:
 
-- `--kv LANDMARKS`: 创建本地 KV 模拟环境
+- `--kv MAPAPP`: 创建本地 KV 模拟环境
 - `--persist-to .wrangler/state`: 将本地 KV 数据持久化到磁盘
 
 ### 访问控制台
@@ -115,7 +115,7 @@ rm -rf .wrangler/state
    - 进入你的 Pages 项目
    - 点击 **设置** → **绑定**
    - 点击 **+ 添加绑定** → 选择 **KV 命名空间**
-   - **变量名称**: `LANDMARKS`（必须与代码中的绑定名一致）
+   - **变量名称**: `MAPAPP`（必须与代码中的绑定名一致）
    - **KV 命名空间**: 选择你创建的命名空间
 4. **配置环境变量**
    - 进入你的 Pages 项目
@@ -287,21 +287,27 @@ pages_build_output_dir = "public"
 
 ### 更改底图
 
-1. **准备图片文件**
+底图支持通过控制台在线管理，无需手动替换文件：
+
+1. **通过控制台上传**
+   - 登录管理控制台（`/console`）
+   - 点击顶部导航栏的"底图"按钮
+   - 在弹窗中可以预览当前底图、上传新底图或恢复默认底图
+   - 支持格式：webp / png / jpeg，最大 10MB
+2. **手动替换默认底图**
    - 将新底图文件命名为 `default-map.webp`
-   - 图片格式必须为 PNG
+   - 图片格式建议为 WebP
    - 推荐分辨率：根据实际地图区域大小调整，建议使用高分辨率图片以支持缩放
-2. **替换图片文件**
-   - 将 `default-map.webp` 复制到 `public/assets/` 目录
-   - 覆盖原有文件
+   - 将 `default-map.webp` 复制到 `public/assets/` 目录，覆盖原有文件
 3. **验证修改**
    - 本地开发：重启开发服务器后刷新页面
    - 线上部署：推送代码到仓库或重新部署
 
-**注意**: 底图文件名必须为 `default-map.webp`，位置必须在 `/assets/` 目录下。代码中引用底图的位置：
+**注意**：默认底图文件名必须为 `default-map.webp`，位置必须在 `/assets/` 目录下。自定义底图通过 API 上传后存储在 Cloudflare KV 中，优先级高于默认底图。代码中引用底图的位置：
 
+- API 端点：`/api/map-image`（由 `functions/api/map-image.js` 处理）
 - `public/index.html` 第 440 行
-- `public/console-edit.html` 第 817 行
+- `public/console-edit.html` 第 848 行
 
 ## 导航功能
 
@@ -399,7 +405,7 @@ A: 本地开发修改 `.dev.vars` 文件中的 `ADMIN_PASSWORD`；线上部署�
 
 ### Q: 如何更换地图底图？
 
-A: 将新底图文件命名为 `default-map.webp`，复制到 `public/assets/` 目录覆盖原有文件即可。详细步骤请参考"更改底图"章节。
+A: 推荐通过控制台（`/console` → "底图"按钮）在线上传，支持 webp/png/jpeg 格式，最大 10MB。也可手动替换 `public/assets/default-map.webp` 文件。详细步骤请参考"更改底图"章节。
 
 ## 许可证
 

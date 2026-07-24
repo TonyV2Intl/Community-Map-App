@@ -1,7 +1,13 @@
 export const LIST_KEY = 'landmarks:list';
 export const CONFIG_KEY = 'config';
+export const DEFAULT_REGION = '上海';
+export const DEFAULT_BOUNDARY_BUFFER = 0.1;
 
 let defaultConfigCache = null;
+
+// Cloudflare Pages Functions 中 env.ASSETS.fetch 的 URL 主机名会被忽略，
+// 实际始终路由到当前项目的静态资源，此处仅作为占位符
+const ASSETS_BASE = 'http://localhost';
 
 async function getDefaultConfig(env) {
   if (defaultConfigCache) {
@@ -11,97 +17,52 @@ async function getDefaultConfig(env) {
   if (!env.ASSETS) {
     console.warn('ASSETS not available, using fallback config');
     return {
-      region: '上海'
+      region: DEFAULT_REGION
     };
   }
 
   try {
-    const response = await env.ASSETS.fetch(new Request('http://localhost/assets/default-config.json'));
+    const response = await env.ASSETS.fetch(new Request(`${ASSETS_BASE}/assets/default-config.json`));
     if (!response.ok) {
       throw new Error(`Failed to fetch default config: ${response.status}`);
     }
     const data = await response.json();
     defaultConfigCache = data.config || {
-      region: '上海'
+      region: DEFAULT_REGION
     };
     return defaultConfigCache;
   } catch (e) {
     console.error('Failed to read default config from file:', e);
     return {
-      region: '上海'
+      region: DEFAULT_REGION
     };
   }
 }
 
 export async function getDefaultLandmarks(env) {
   if (!env.ASSETS) {
-    console.warn('ASSETS not available, using fallback defaults');
-    return [
-      {
-        id: 'zhou-gongguan',
-        name: '周公馆',
-        address: '黄浦区思南路73号',
-        x: 69.5,
-        y: 55.2,
-        icon: 'fa-location-dot',
-        color: '#4285f4',
-        description: '周公馆位于上海市黄浦区思南路73号，是中国共产党早期在上海的重要活动场所。',
-        imageUrl: '',
-        enabled: true,
-        createdAt: 1718900000000,
-        updatedAt: Date.now()
-      }
-    ];
+    console.warn('ASSETS not available, returning empty array');
+    return [];
   }
 
   try {
-    const response = await env.ASSETS.fetch(new Request('http://localhost/assets/default-config.json'));
+    const response = await env.ASSETS.fetch(new Request(`${ASSETS_BASE}/assets/default-config.json`));
     if (!response.ok) {
       throw new Error(`Failed to fetch default config: ${response.status}`);
     }
     const data = await response.json();
-    return data.landmarks || [
-      {
-        id: 'zhou-gongguan',
-        name: '周公馆',
-        address: '黄浦区思南路73号',
-        x: 69.5,
-        y: 55.2,
-        icon: 'fa-location-dot',
-        color: '#4285f4',
-        description: '周公馆位于上海市黄浦区思南路73号，是中国共产党早期在上海的重要活动场所。',
-        imageUrl: '',
-        enabled: true,
-        createdAt: 1718900000000,
-        updatedAt: Date.now()
-      }
-    ];
+    return data.landmarks || [];
   } catch (e) {
     console.error('Failed to read default landmarks from file:', e);
-    return [
-      {
-        id: 'zhou-gongguan',
-        name: '周公馆',
-        address: '黄浦区思南路73号',
-        x: 69.5,
-        y: 55.2,
-        icon: 'fa-location-dot',
-        color: '#4285f4',
-        description: '周公馆位于上海市黄浦区思南路73号，是中国共产党早期在上海的重要活动场所。',
-        imageUrl: '',
-        enabled: true,
-        createdAt: 1718900000000,
-        updatedAt: Date.now()
-      }
-    ];
+    return [];
   }
 }
 
 export { getDefaultConfig };
 
 export async function getAllLandmarks(env) {
-  if (!env.LANDMARKS) {
-    console.warn('LANDMARKS KV namespace not configured, using default data');
+  if (!env.MAPAPP) {
+    console.warn('MAPAPP KV namespace not configured, using default data');
     return await getDefaultLandmarks(env);
   }
 
@@ -109,7 +70,7 @@ export async function getAllLandmarks(env) {
   let readFailed = false;
   
   try {
-    listData = await env.LANDMARKS.get(LIST_KEY, 'json');
+    listData = await env.MAPAPP.get(LIST_KEY, 'json');
   } catch (e) {
     console.error('Failed to get landmarks from KV:', e);
     readFailed = true;
@@ -123,23 +84,16 @@ export async function getAllLandmarks(env) {
     return listData;
   }
 
-  const defaults = await getDefaultLandmarks(env);
-  
-  try {
-    await env.LANDMARKS.put(LIST_KEY, JSON.stringify(defaults, null, 2));
-  } catch (e) {
-    console.error('Failed to put landmarks to KV:', e);
-  }
-  
-  return defaults;
+  // KV 为空时返回空数组，不再自动加载默认配置
+  return [];
 }
 
 export async function saveAllLandmarks(env, landmarks) {
-  if (!env.LANDMARKS) {
-    console.warn('LANDMARKS KV namespace not configured, cannot save data');
+  if (!env.MAPAPP) {
+    console.warn('MAPAPP KV namespace not configured, cannot save data');
     return;
   }
-  await env.LANDMARKS.put(LIST_KEY, JSON.stringify(landmarks, null, 2));
+  await env.MAPAPP.put(LIST_KEY, JSON.stringify(landmarks, null, 2));
 }
 
 export function generateId() {

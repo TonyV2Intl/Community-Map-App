@@ -563,7 +563,7 @@ function copyKvValue() {
 }
 
 async function clearKvValue() {
-    if (!confirm('确定要清除所有KV值吗？此操作将删除所有地标数据，且无法恢复！')) {
+    if (!confirm('确定要清除所有KV值吗？此操作将删除所有地标数据和配置，且无法恢复！')) {
         return;
     }
     
@@ -572,7 +572,7 @@ async function clearKvValue() {
         const data = await res.json();
         
         if (data.success) {
-            showToast(data.message);
+            showToast(data.message || 'KV值已清除');
             viewKvRaw();
             loadLandmarks();
         } else {
@@ -581,6 +581,33 @@ async function clearKvValue() {
     } catch (e) {
         console.error('清除KV失败:', e);
         showToast('清除失败: ' + e.message);
+    }
+}
+
+async function restoreDefaults() {
+    if (!confirm('确定要还原默认配置吗？当前数据将被覆盖。')) {
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/kv-debug', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ restoreDefaults: true })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            showToast(data.message || '默认配置已还原');
+            viewKvRaw();
+            loadLandmarks();
+        } else {
+            showToast('还原失败: ' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('还原默认配置失败:', e);
+        showToast('还原失败，请检查网络');
     }
 }
 
@@ -593,3 +620,166 @@ document.getElementById('kv-modal').addEventListener('click', function(e) {
 });
 
 loadLandmarks();
+
+// ==================== 底图管理 ====================
+
+function openMapModal() {
+    document.getElementById('map-modal').classList.add('show');
+    loadMapInfo();
+}
+
+function closeMapModal() {
+    document.getElementById('map-modal').classList.remove('show');
+}
+
+async function loadMapInfo() {
+    const preview = document.getElementById('map-preview');
+    const statusEl = document.getElementById('map-status');
+    const typeEl = document.getElementById('map-type');
+    const sizeEl = document.getElementById('map-size');
+    const nameEl = document.getElementById('map-name');
+    const updatedEl = document.getElementById('map-updated');
+    const resetBtn = document.getElementById('map-reset-btn');
+
+    // 重置显示
+    preview.replaceChildren();
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'map-placeholder';
+    const spinner = document.createElement('i');
+    spinner.className = 'fa-solid fa-spinner fa-spin';
+    loadingDiv.appendChild(spinner);
+    loadingDiv.appendChild(document.createTextNode(' 加载中...'));
+    preview.appendChild(loadingDiv);
+
+    try {
+        const res = await fetch('/api/map-image?info');
+        const data = await res.json();
+
+        if (data.hasCustom && data.meta) {
+            // 有自定义底图
+            statusEl.replaceChildren();
+            const customTag = document.createElement('span');
+            customTag.className = 'map-status-tag custom';
+            customTag.textContent = '自定义';
+            statusEl.appendChild(customTag);
+
+            typeEl.textContent = data.meta.type || '-';
+            sizeEl.textContent = formatFileSize(data.meta.size);
+            nameEl.textContent = data.meta.name || '-';
+            updatedEl.textContent = data.meta.updatedAt
+                ? new Date(data.meta.updatedAt).toLocaleString('zh-CN')
+                : '-';
+            resetBtn.disabled = false;
+
+            // 预览图片（加时间戳避免缓存）
+            preview.replaceChildren();
+            const img = document.createElement('img');
+            img.src = '/api/map-image?t=' + Date.now();
+            img.alt = '当前底图';
+            preview.appendChild(img);
+        } else {
+            // 使用默认底图
+            statusEl.replaceChildren();
+            const defaultTag = document.createElement('span');
+            defaultTag.className = 'map-status-tag default';
+            defaultTag.textContent = '默认';
+            statusEl.appendChild(defaultTag);
+
+            typeEl.textContent = 'image/webp';
+            sizeEl.textContent = '-';
+            nameEl.textContent = 'default-map.webp';
+            updatedEl.textContent = '-';
+            resetBtn.disabled = true;
+
+            preview.replaceChildren();
+            const img = document.createElement('img');
+            img.src = '/assets/default-map.webp';
+            img.alt = '默认底图';
+            preview.appendChild(img);
+        }
+    } catch (e) {
+        console.error('加载底图信息失败:', e);
+        statusEl.textContent = '加载失败';
+        preview.replaceChildren();
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'map-placeholder';
+        errorDiv.textContent = '加载失败: ' + e.message;
+        preview.appendChild(errorDiv);
+    }
+}
+
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '-';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    let size = bytes;
+    while (size >= 1024 && i < units.length - 1) {
+        size /= 1024;
+        i++;
+    }
+    return size.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+}
+
+function triggerMapUpload() {
+    document.getElementById('map-upload-input').click();
+}
+
+async function handleMapUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+        const res = await fetch('/api/map-image', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            showToast('底图上传成功');
+            loadMapInfo();
+        } else {
+            showToast('上传失败: ' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('底图上传失败:', e);
+        showToast('上传失败，请检查网络');
+    }
+
+    input.value = '';
+}
+
+async function handleMapReset() {
+    if (!confirm('确定要恢复默认底图吗？当前自定义底图将被删除。')) {
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/map-image', {
+            method: 'DELETE'
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            showToast('已恢复默认底图');
+            loadMapInfo();
+        } else {
+            showToast('恢复失败: ' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('恢复默认底图失败:', e);
+        showToast('恢复失败，请检查网络');
+    }
+}
+
+// 点击遮罩关闭底图模态框
+document.getElementById('map-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeMapModal();
+    }
+});
