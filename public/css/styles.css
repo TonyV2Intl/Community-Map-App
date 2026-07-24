@@ -548,7 +548,7 @@ input[type=color]::-webkit-color-swatch {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
+  flex: 1;
   padding: 14px;
   background: var(--cmap-primary);
   color: white;

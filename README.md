@@ -22,15 +22,19 @@ Community-Map-App/
 │   ├── css/                   # 样式文件
 │   ├── js/                    # 前端脚本
 │   └── assets/                # 静态资源
+│       ├── map.png            # 地图底图
+│       └── default-config.json # 默认地标数据与配置
 ├── functions/                 # Cloudflare Pages Functions
 │   ├── _middleware.js         # 全局中间件（路由重写、鉴权）
 │   └── api/                   # API 端点
-│       ├── _shared.js         # 共享模块（默认数据、工具函数）
+│       ├── _shared.js         # 共享模块（默认数据、工具函数、地理编码）
 │       ├── auth.js            # 认证 API (POST, GET)
+│       ├── config.js          # 配置 API (GET, POST)
+│       ├── geocode.js         # 天地图地理编码 API (GET)
 │       ├── landmarks.js       # 地标列表 API (GET, POST, PUT)
 │       └── landmarks/
 │           └── [id].js        # 单个地标 API (GET, PUT, DELETE)
-├── wrangler.toml              # Cloudflare Wrangler 配置
+├── .dev.vars.example          # 本地开发环境变量示例
 ├── .dev.vars                  # 本地开发环境变量（已在 .gitignore 中）
 └── package.json               # 项目依赖和脚本
 ```
@@ -162,6 +166,19 @@ npm run deploy
 | PUT | `/api/landmarks/:id` | 更新地标 | 是 |
 | DELETE | `/api/landmarks/:id` | 删除地标 | 是 |
 
+### 配置
+
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| GET | `/api/config` | 获取当前配置（region、boundaryBuffer 等） | 否 |
+| POST | `/api/config` | 保存配置到 KV | 是 |
+
+### 地理编码
+
+| 方法 | 端点 | 描述 | 认证 |
+|------|------|------|------|
+| GET | `/api/geocode?address=地址` | 天地图地址→坐标转换，返回 `{ lat, lng }` | 是 |
+
 ### 请求示例
 
 **创建地标 (POST)**
@@ -245,10 +262,31 @@ pages_build_output_dir = "public"
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | ADMIN_PASSWORD | 控制台管理员密码 | 无（必须设置） |
+| TIANDITU_KEY | 天地图 API 密钥（用于地址→坐标转换） | 无 |
+| BAIDU_AK | 百度地图 API AK（用于导航功能） | 无 |
+
+### 地标数据模型
+
+每个地标包含以下字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|:--:|------|
+| `id` | string | ✅ | 唯一标识符（如 `zhou-gongguan`） |
+| `name` | string | ✅ | 地标名称（API 校验非空） |
+| `x` | number | ✅ | 地图 X 坐标（百分比，0-100） |
+| `y` | number | ✅ | 地图 Y 坐标（百分比，0-100） |
+| `address` | string | — | 地址文本，创建/更新有地址时自动触发地理编码 |
+| `lat` | number | — | 纬度（GCJ-02 坐标系），为空时高德导航按钮禁用 |
+| `lng` | number | — | 经度（GCJ-02 坐标系） |
+| `description` | string | — | 详细介绍，支持朗读功能 |
+| `imageUrl` | string | — | 图片链接 |
+| `icon` | string | — | Font Awesome 图标类名（如 `fa-location-dot`） |
+| `color` | string | — | 图标颜色（如 `#4285f4`） |
+| `enabled` | boolean | — | 是否在地图上显示 |
+| `createdAt` | number | — | 创建时间戳 |
+| `updatedAt` | number | — | 更新时间戳 |
 
 ### 更改底图
-
-要更换地图底图，请按以下步骤操作：
 
 1. **准备图片文件**
    - 将新底图文件命名为 `map.png`
@@ -266,6 +304,57 @@ pages_build_output_dir = "public"
 **注意**: 底图文件名必须为 `map.png`，位置必须在 `/assets/` 目录下。代码中引用底图的位置：
 - `public/index.html` 第 440 行
 - `public/console-edit.html` 第 817 行
+
+## 导航功能
+
+### 坐标系说明
+
+| 坐标系 | 使用场景 | 说明 |
+|--------|---------|------|
+| WGS84 | 浏览器定位 | 浏览器 `geolocation` API 返回的原始坐标 |
+| GCJ-02 | 高德地图、腾讯地图、地标存储 | 中国国测局加密坐标，天地图地理编码返回此坐标系 |
+| BD-09 | 百度地图 | 百度在 GCJ-02 基础上二次加密 |
+
+坐标转换使用 [gcoord](https://github.com/hujiulong/gcoord) 库：
+- 浏览器定位 (WGS84) → 百度地图 (BD-09)：`gcoord.transform([lng, lat], gcoord.WGS84, gcoord.BD09)`
+- 浏览器定位 (WGS84) → 高德/腾讯 (GCJ-02)：`gcoord.transform([lng, lat], gcoord.WGS84, gcoord.GCJ02)`
+
+### 导航链接构造
+
+点击地标详情中的"步行导航"按钮 → 弹出二级窗口选择地图平台 → 点击"导航"打开地图 App 或跳转网页。
+
+| 参数 | 数据来源 | 百度地图 | 高德地图 | 腾讯地图 |
+|------|----------|---------|---------|---------|
+| 目的地名称 | `landmark.name` | `destination=周公馆` | `to=周公馆` *(无坐标时)* | `to=周公馆` |
+| 目的地坐标 | `landmark.lat/lng` (GCJ-02) | *不使用* | `to=lng,lat,endpoint` (GCJ-02) | `tocoord=lat,lng` (GCJ-02) |
+| 起点坐标 | 浏览器定位 (WGS84) | `origin=latlng:bd_lat,bd_lng` (转 BD-09) | *不传，地图自行获取* | *不传，地图自行获取* |
+| 区域 | `mapConfig.region` | `region=上海` | — | — |
+| 出行方式 | 硬编码 | `mode=walking` | `mode=walk` | `type=walk` |
+| 输出格式 | 硬编码 | `output=html` | — | — |
+| 来源标识 | 动态域名 | `src=当前域名` | `src=当前域名` | `referer=静态配置` |
+
+**URL 示例**：
+
+```
+# 百度地图（有定位时）
+https://api.map.baidu.com/direction?destination=周公馆&mode=walking&region=上海&output=html&src=localhost&origin=latlng:31.214,121.468|name:我的位置
+
+# 高德地图（有坐标时）
+https://uri.amap.com/navigation?to=121.468,31.214,endpoint&mode=walk&src=localhost
+
+# 腾讯地图（有坐标时）
+https://apis.map.qq.com/uri/v1/routeplan?type=walk&to=周公馆&referer=community-map&tocoord=31.214,121.468
+```
+
+**注意**：高德地图必须提供目的地坐标，否则导航链接无效。当前端检测到地标缺少 `lat/lng` 时，高德地图的导航按钮会自动禁用。
+
+### 地理编码
+
+创建或更新地标时，如果提供了 `address` 但缺少 `lat/lng`，后端会自动调用天地图 API 将地址转换为坐标。
+
+- 需要在环境变量中配置 `TIANDITU_KEY`
+- 手动触发：编辑页中点击"获取坐标"按钮调用 `/api/geocode`
+- 申请地址：<http://lbs.tianditu.gov.cn>
 
 ## CORS 支持
 

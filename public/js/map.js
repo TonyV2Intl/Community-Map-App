@@ -354,6 +354,11 @@ function openDetail(id) {
     // 重置导航平台面板
     resetNavPanel();
 
+    // 高德地图需要经纬度，否则禁用
+    var hasCoords = landmark.lat != null && landmark.lng != null;
+    document.getElementById('amap-nav-btn').disabled = !hasCoords;
+    document.getElementById('amap-copy-btn').disabled = !hasCoords;
+
     document.getElementById('detail-title').textContent = landmark.name;
     document.getElementById('detail-description').textContent = landmark.description || '暂无介绍';
     document.getElementById('detail-address').textContent = landmark.address || '';
@@ -391,17 +396,18 @@ function openDetail(id) {
 
 function toggleNavPanel() {
     var panel = document.getElementById('nav-platforms');
-    if (panel.style.display === 'none' || panel.style.display === '') {
-        panel.style.display = 'flex';
-    } else {
-        panel.style.display = 'none';
-    }
+    panel.classList.toggle('show');
+}
+
+function closeNavPanel() {
+    var panel = document.getElementById('nav-platforms');
+    if (panel) panel.classList.remove('show');
 }
 
 function resetNavPanel() {
     var panel = document.getElementById('nav-platforms');
     if (panel) {
-        panel.style.display = 'none';
+        panel.classList.remove('show');
     }
 }
 

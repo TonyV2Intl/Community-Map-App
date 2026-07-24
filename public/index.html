@@ -179,25 +179,6 @@
             border-radius: 2px;
             background: var(--cmap-border);
         }
-        .sheet-close-btn {
-            position: absolute;
-            top: 12px;
-            right: 16px;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--cmap-muted);
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: var(--cmap-foreground);
-            transition: background 0.15s;
-        }
-        .sheet-close-btn:hover {
-            background: var(--color-neutral-300);
-        }
         .detail-image {
             width: calc(100% - 32px);
             height: 200px;
@@ -272,7 +253,7 @@
             transition: background 0.15s;
         }
         .navigate-btn:hover {
-            background: var(--cmap-primary-hover, var(--cmap-primary-dark));
+            background: var(--cmap-primary-hover, #3367d6);
         }
         .navigate-btn i {
             font-size: 18px;
@@ -341,6 +322,11 @@
         .nav-go-btn:hover {
             opacity: 0.85;
         }
+        .nav-go-btn:disabled {
+            background: #aaa !important;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
         .nav-copy-btn {
             display: flex;
             align-items: center;
@@ -359,15 +345,47 @@
         .nav-copy-btn:hover {
             background: var(--cmap-muted);
         }
-        .map-controls {
+        .nav-copy-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .nav-platforms {
+            position: fixed;
+            inset: 0;
+            z-index: 55;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.32);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+        .nav-platforms.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .nav-platforms-backdrop {
             position: absolute;
-            right: 16px;
-            bottom: 24px;
+            inset: 0;
+        }
+        .nav-platforms-panel {
+            position: relative;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            width: 280px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             display: flex;
             flex-direction: column;
             gap: 8px;
-            z-index: 20;
-            touch-action: auto;
+        }
+        .nav-platforms-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--cmap-foreground);
+            margin-bottom: 4px;
+            text-align: center;
         }
         .map-control-btn {
             width: 44px;
@@ -568,9 +586,6 @@
                 <div class="sheet-drag-handle">
                     <div></div>
                 </div>
-                <button class="sheet-close-btn" onclick="closeDetail()" aria-label="关闭">
-                    <i class="fa-solid fa-xmark" style="font-size: 16px;"></i>
-                </button>
                 <div class="detail-image" id="detail-image">
                     <i class="fa-regular fa-image detail-image-placeholder" style="font-size: 40px;"></i>
                 </div>
@@ -582,39 +597,42 @@
                         <span id="detail-address">地址</span>
                     </div>
                     <div class="navigate-actions">
+                        <button class="speak-btn" id="speak-btn" onclick="toggleSpeak()">
+                            <i class="fa-solid fa-volume-high" id="speak-icon"></i>
+                            <span id="speak-label">朗读介绍</span>
+                        </button>
                         <button class="navigate-btn" onclick="toggleNavPanel()">
                             <i class="fa-solid fa-person-walking"></i>
                             <span>步行导航</span>
                         </button>
                     </div>
-                    <div class="nav-platforms" id="nav-platforms" style="display: none;">
-                        <div class="nav-platform-item">
-                            <span class="nav-platform-name">百度地图</span>
-                            <div class="nav-platform-actions">
-                                <button class="nav-go-btn" onclick="handleNavigate('baidu')">导航</button>
-                                <button class="nav-copy-btn" onclick="copyNavUrl('baidu')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
-                            </div>
-                        </div>
-                        <div class="nav-platform-item">
-                            <span class="nav-platform-name">高德地图</span>
-                            <div class="nav-platform-actions">
-                                <button class="nav-go-btn" onclick="handleNavigate('amap')" style="background: #07c160;">导航</button>
-                                <button class="nav-copy-btn" onclick="copyNavUrl('amap')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
-                            </div>
-                        </div>
-                        <div class="nav-platform-item">
-                            <span class="nav-platform-name">腾讯地图</span>
-                            <div class="nav-platform-actions">
-                                <button class="nav-go-btn" onclick="handleNavigate('tencent')" style="background: #006eff;">导航</button>
-                                <button class="nav-copy-btn" onclick="copyNavUrl('tencent')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
-                            </div>
-                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-platforms" id="nav-platforms">
+            <div class="nav-platforms-backdrop" onclick="closeNavPanel()"></div>
+            <div class="nav-platforms-panel">
+                <div class="nav-platforms-title">选择导航地图</div>
+                <div class="nav-platform-item">
+                    <span class="nav-platform-name">百度地图</span>
+                    <div class="nav-platform-actions">
+                        <button class="nav-go-btn" onclick="handleNavigate('baidu')">导航</button>
+                        <button class="nav-copy-btn" onclick="copyNavUrl('baidu')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
                     </div>
-                    <div class="navigate-actions" style="margin-top: 8px;">
-                        <button class="speak-btn" id="speak-btn" onclick="toggleSpeak()">
-                            <i class="fa-solid fa-volume-high" id="speak-icon"></i>
-                            <span id="speak-label">朗读介绍</span>
-                        </button>
+                </div>
+                <div class="nav-platform-item">
+                    <span class="nav-platform-name">高德地图</span>
+                    <div class="nav-platform-actions">
+                        <button class="nav-go-btn" id="amap-nav-btn" onclick="handleNavigate('amap')" style="background: #07c160;">导航</button>
+                        <button class="nav-copy-btn" id="amap-copy-btn" onclick="copyNavUrl('amap')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
+                    </div>
+                </div>
+                <div class="nav-platform-item">
+                    <span class="nav-platform-name">腾讯地图</span>
+                    <div class="nav-platform-actions">
+                        <button class="nav-go-btn" onclick="handleNavigate('tencent')" style="background: #006eff;">导航</button>
+                        <button class="nav-copy-btn" onclick="copyNavUrl('tencent')" title="复制链接"><i class="fa-solid fa-copy"></i></button>
                     </div>
                 </div>
             </div>
