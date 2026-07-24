@@ -308,7 +308,7 @@ function renderMarkers() {
         marker.style.left = landmark.x + '%';
         marker.style.top = landmark.y + '%';
         marker.title = landmark.name;
-        marker.setAttribute('data-id', escapeHtml(landmark.id));
+        marker.setAttribute('data-name', escapeHtml(landmark.name));
 
         const iconClass = getIconClass(landmark.icon);
         const color = validateColor(landmark.color);
@@ -336,7 +336,7 @@ function renderMarkers() {
 
         marker.addEventListener('click', function(e) {
             e.stopPropagation();
-            openDetail(landmark.id);
+            openDetail(landmark.name);
             focusOnLandmark(landmark);
         });
 
@@ -344,8 +344,8 @@ function renderMarkers() {
     });
 }
 
-function openDetail(id) {
-    const landmark = landmarks.find(l => l.id === id);
+function openDetail(name) {
+    const landmark = landmarks.find(l => l.name === name);
     if (!landmark) return;
 
     // 保存当前地标用于导航
@@ -678,10 +678,10 @@ function updateSpeakButton(speaking) {
     }
 }
 
-function goToLandmark(id) {
-    const landmark = landmarks.find(l => l.id === id);
+function goToLandmark(name) {
+    const landmark = landmarks.find(l => l.name === name);
     if (landmark) {
-        openDetail(id);
+        openDetail(name);
         focusOnLandmark(landmark);
     }
 }
@@ -750,9 +750,9 @@ function renderMenuItems(filterText = '') {
         
         const item = document.createElement('div');
         item.className = 'menu-item';
-        item.setAttribute('data-id', landmark.id);
+        item.setAttribute('data-name', landmark.name);
         item.onclick = function() {
-            handleMenuClick(landmark.id);
+            handleMenuClick(landmark.name);
         };
         
         const itemIcon = document.createElement('div');
@@ -787,9 +787,9 @@ function renderMenuItems(filterText = '') {
     });
 }
 
-function handleMenuClick(id) {
+function handleMenuClick(name) {
     toggleMenu();
-    goToLandmark(id);
+    goToLandmark(name);
 }
 
 function handleMenuSearch(value) {
@@ -865,6 +865,7 @@ async function loadConfig() {
             const config = await res.json();
             if (config.region) mapConfig.region = config.region;
             if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
+            if (config.title) updatePageTitle(config.title);
             return;
         }
     } catch (e) {
@@ -879,10 +880,19 @@ async function loadConfig() {
             const config = data.config || {};
             if (config.region) mapConfig.region = config.region;
             if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
+            if (config.title) updatePageTitle(config.title);
         }
     } catch (e) {
         console.warn('加载配置失败，使用默认配置', e);
     }
+}
+
+function updatePageTitle(title) {
+    document.title = '社区地图 - ' + title;
+    const titleEl = document.getElementById('map-title');
+    if (titleEl) titleEl.textContent = title;
+    const imgEl = document.getElementById('map-img');
+    if (imgEl) imgEl.alt = title + '底图';
 }
 
 window.addEventListener('resize', function() {

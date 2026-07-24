@@ -1,5 +1,5 @@
 let isNew = true;
-let editingId = null;
+let editingName = null;
 let selectedIcon = 'fa-location-dot';
 let selectedColor = '#4285f4';
 let landmarkEnabled = true;
@@ -14,14 +14,14 @@ let pickerTranslateY = 0;
 let pickerMinScale = 1;
 
 const urlParams = new URLSearchParams(window.location.search);
-const idParam = urlParams.get('id');
+const nameParam = urlParams.get('name');
 
 function init() {
-    if (idParam) {
+    if (nameParam) {
         isNew = false;
-        editingId = idParam;
+        editingName = nameParam;
         document.getElementById('page-title').textContent = '编辑地标';
-        loadLandmark(idParam);
+        loadLandmark(nameParam);
     } else {
         isNew = true;
         document.getElementById('page-title').textContent = '新增地标';
@@ -49,9 +49,9 @@ function init() {
     setupPickerDrag();
 }
 
-async function loadLandmark(id) {
+async function loadLandmark(name) {
     try {
-        const res = await fetch(`/api/landmarks/${id}`);
+        const res = await fetch(`/api/landmarks?name=${encodeURIComponent(name)}`);
         if (res.ok) {
             const landmark = await res.json();
             fillForm(landmark);
@@ -542,7 +542,7 @@ async function saveLandmark() {
                 body: JSON.stringify(data)
             });
         } else {
-            res = await fetch(`/api/landmarks/${editingId}`, {
+            res = await fetch(`/api/landmarks?name=${encodeURIComponent(editingName)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)

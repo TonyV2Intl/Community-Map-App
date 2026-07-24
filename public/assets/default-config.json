@@ -1,7 +1,6 @@
 ﻿{
   "landmarks": [
     {
-      "id": "zhou-gongguan",
       "name": "周公馆",
       "address": "黄浦区思南路73号",
       "x": 69.5,
@@ -17,7 +16,6 @@
       "updatedAt": 1784867477954
     },
     {
-      "id": "guotai-cinema",
       "name": "国泰电影院",
       "address": "黄浦区淮海中路870号",
       "x": 28.6,
@@ -33,7 +31,6 @@
       "updatedAt": 1784867471812
     },
     {
-      "id": "ruijin-hospital",
       "name": "瑞金医院",
       "address": "黄浦区瑞金二路197号",
       "x": 65.5,
@@ -49,7 +46,6 @@
       "updatedAt": 1784867466363
     },
     {
-      "id": "garden-hotel",
       "name": "花园饭店",
       "address": "黄浦区茂名南路58号",
       "x": 20.3,
@@ -65,7 +61,6 @@
       "updatedAt": 1784867495353
     },
     {
-      "id": "culture-plaza",
       "name": "上海文化广场",
       "address": "黄浦区永嘉路36号",
       "x": 33.4,
@@ -81,7 +76,6 @@
       "updatedAt": 1784867500993
     },
     {
-      "id": "sinan-mansion",
       "name": "思南公馆",
       "address": "黄浦区思南路55号",
       "x": 74.9,
@@ -97,7 +91,6 @@
       "updatedAt": 1784867515902
     },
     {
-      "id": "sun-yat-sen",
       "name": "孙中山纪念馆",
       "address": "黄浦区香山路7号",
       "x": 65.3,
@@ -113,7 +106,6 @@
       "updatedAt": 1784867521163
     },
     {
-      "id": "yuyangli",
       "name": "渔阳里",
       "address": "黄浦区淮海中路567弄",
       "x": 60,
@@ -131,6 +123,7 @@
   ],
   "config": {
     "region": "上海",
-    "boundaryBuffer": 0.1
+    "boundaryBuffer": 0.1,
+    "title": "瑞金二路街道便民地图"
   }
 }

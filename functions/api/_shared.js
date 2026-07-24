@@ -2,6 +2,7 @@ export const LIST_KEY = 'landmarks:list';
 export const CONFIG_KEY = 'config';
 export const DEFAULT_REGION = '上海';
 export const DEFAULT_BOUNDARY_BUFFER = 0.1;
+export const DEFAULT_TITLE = '瑞金二路街道便民地图';
 
 let defaultConfigCache = null;
 
@@ -94,10 +95,6 @@ export async function saveAllLandmarks(env, landmarks) {
     return;
   }
   await env.MAPAPP.put(LIST_KEY, JSON.stringify(landmarks, null, 2));
-}
-
-export function generateId() {
-  return 'lm_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 }
 
 export async function verifyToken(env, token) {

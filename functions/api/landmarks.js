@@ -1,10 +1,22 @@
-import { getAllLandmarks, saveAllLandmarks, generateId, corsHeaders, jsonResponse, geocodeAddress } from './_shared';
+import { getAllLandmarks, saveAllLandmarks, corsHeaders, jsonResponse, geocodeAddress } from './_shared';
 
 export async function onRequestGet(context) {
   const env = context.env;
+  const url = new URL(context.request.url);
+  const name = url.searchParams.get('name');
 
   try {
     const landmarks = await getAllLandmarks(env);
+    
+    if (name) {
+      const decodedName = decodeURIComponent(name);
+      const landmark = landmarks.find(l => l.name === decodedName);
+      if (!landmark) {
+        return jsonResponse({ error: 'Landmark not found' }, 404);
+      }
+      return jsonResponse(landmark);
+    }
+    
     return jsonResponse(landmarks);
   } catch (e) {
     console.error('GET /api/landmarks error:', e);
@@ -24,10 +36,15 @@ export async function onRequestPost(context) {
     }
 
     const landmarks = await getAllLandmarks(env);
+    const name = data.name.trim();
+    
+    // 检查名称是否重复
+    if (landmarks.some(l => l.name === name)) {
+      return jsonResponse({ error: `地标 "${name}" 已存在` }, 409);
+    }
 
     const newLandmark = {
-      id: data.id || generateId(),
-      name: data.name.trim(),
+      name: name,
       address: data.address || '',
       x: Number(data.x) || 50,
       y: Number(data.y) || 50,
@@ -68,8 +85,58 @@ export async function onRequestPost(context) {
 export async function onRequestPut(context) {
   const request = context.request;
   const env = context.env;
+  const url = new URL(context.request.url);
+  const name = url.searchParams.get('name');
 
   try {
+    // 单个地标更新（有 name 参数）
+    if (name) {
+      const data = await request.json();
+      const landmarks = await getAllLandmarks(env);
+      const decodedName = decodeURIComponent(name);
+      const index = landmarks.findIndex(l => l.name === decodedName);
+
+      if (index === -1) {
+        return jsonResponse({ error: 'Landmark not found' }, 404);
+      }
+
+      // 如果修改了名称，检查新名称是否与其他地标重复
+      if (data.name && data.name.trim() !== decodedName) {
+        const newName = data.name.trim();
+        if (landmarks.some(l => l.name === newName)) {
+          return jsonResponse({ error: `地标 "${newName}" 已存在` }, 409);
+        }
+      }
+
+      const updated = {
+        ...landmarks[index],
+        ...data,
+        lat: data.lat !== undefined && data.lat !== null && data.lat !== '' ? Number(data.lat) : landmarks[index].lat,
+        lng: data.lng !== undefined && data.lng !== null && data.lng !== '' ? Number(data.lng) : landmarks[index].lng,
+        updatedAt: Date.now()
+      };
+
+      // 自动地理编码：有地址但无经纬度时，尝试获取
+      const addr = updated.address;
+      if (addr && (updated.lat === null || updated.lat === undefined || updated.lng === null || updated.lng === undefined)) {
+        try {
+          const geo = await geocodeAddress(env, addr);
+          if (geo) {
+            updated.lat = geo.lat;
+            updated.lng = geo.lng;
+          }
+        } catch (e) {
+          console.warn('自动地理编码失败:', e);
+        }
+      }
+
+      landmarks[index] = updated;
+      await saveAllLandmarks(env, landmarks);
+
+      return jsonResponse(updated);
+    }
+
+    // 批量导入（无 name 参数）
     const data = await request.json();
 
     if (!Array.isArray(data)) {
@@ -81,7 +148,6 @@ export async function onRequestPut(context) {
         return null;
       }
       return {
-        id: item.id || generateId(),
         name: item.name.trim(),
         address: item.address || '',
         x: Number(item.x) || 50,
@@ -97,6 +163,15 @@ export async function onRequestPut(context) {
         updatedAt: Date.now()
       };
     }).filter(item => item !== null);
+
+    // 检查重复名称
+    const nameSet = new Set();
+    for (const lm of validLandmarks) {
+      if (nameSet.has(lm.name)) {
+        return jsonResponse({ error: `导入数据中存在重复名称: "${lm.name}"` }, 409);
+      }
+      nameSet.add(lm.name);
+    }
 
     // 自动地理编码：为缺少经纬度的地标批量获取
     for (const lm of validLandmarks) {
@@ -122,8 +197,32 @@ export async function onRequestPut(context) {
   }
 }
 
-export async function onRequestDelete() {
-  return jsonResponse({ error: 'Use DELETE /api/landmarks/:id to delete a single landmark', success: false }, 400);
+export async function onRequestDelete(context) {
+  const env = context.env;
+  const url = new URL(context.request.url);
+  const name = url.searchParams.get('name');
+
+  if (!name) {
+    return jsonResponse({ error: 'Name parameter is required' }, 400);
+  }
+
+  try {
+    const landmarks = await getAllLandmarks(env);
+    const decodedName = decodeURIComponent(name);
+    const index = landmarks.findIndex(l => l.name === decodedName);
+
+    if (index === -1) {
+      return jsonResponse({ error: 'Landmark not found' }, 404);
+    }
+
+    landmarks.splice(index, 1);
+    await saveAllLandmarks(env, landmarks);
+
+    return jsonResponse({ success: true });
+  } catch (e) {
+    console.error('DELETE /api/landmarks error:', e);
+    return jsonResponse({ error: 'Internal server error' }, 500);
+  }
 }
 
 export async function onRequestOptions() {

@@ -3,7 +3,7 @@ const CONFIG_KEY = 'config';
 
 let landmarks = [];
 let filteredLandmarks = [];
-let deleteTargetId = null;
+let deleteTargetName = null;
 
 function getIconClass(icon) {
     const iconMap = {
@@ -75,7 +75,7 @@ function renderList() {
         
         const item = document.createElement('div');
         item.className = 'landmark-item' + (isDisabled ? ' disabled' : '');
-        item.setAttribute('data-id', landmark.id);
+        item.setAttribute('data-name', landmark.name);
         
         // landmark-icon
         const iconDiv = document.createElement('div');
@@ -91,7 +91,7 @@ function renderList() {
         // landmark-info
         const infoDiv = document.createElement('div');
         infoDiv.className = 'landmark-info';
-        infoDiv.setAttribute('data-id', landmark.id);
+        infoDiv.setAttribute('data-name', landmark.name);
         
         const nameDiv = document.createElement('div');
         nameDiv.className = 'landmark-name';
@@ -112,7 +112,7 @@ function renderList() {
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.className = 'edit-btn';
-        editBtn.setAttribute('data-id', landmark.id);
+        editBtn.setAttribute('data-name', landmark.name);
         editBtn.textContent = '编辑';
         actionsDiv.appendChild(editBtn);
         
@@ -120,8 +120,7 @@ function renderList() {
         deleteBtn.type = 'button';
         deleteBtn.className = 'delete-btn';
         deleteBtn.setAttribute('aria-label', '删除');
-        deleteBtn.setAttribute('data-id', landmark.id);
-        deleteBtn.setAttribute('data-name', landmark.name || '');
+        deleteBtn.setAttribute('data-name', landmark.name);
         const deleteIcon = document.createElement('i');
         deleteIcon.className = 'fa-regular fa-trash-can';
         deleteIcon.style.fontSize = '14px';
@@ -153,9 +152,9 @@ function handleSearch(query) {
     renderList();
 }
 
-function goToEdit(id) {
-    if (id) {
-        window.location.href = `/console-edit?id=${encodeURIComponent(id)}`;
+function goToEdit(name) {
+    if (name) {
+        window.location.href = `/console-edit?name=${encodeURIComponent(name)}`;
     } else {
         window.location.href = '/console-edit';
     }
@@ -181,29 +180,29 @@ async function handleLogout() {
     }
 }
 
-function showDeleteConfirm(id, name) {
-    deleteTargetId = id;
+function showDeleteConfirm(name) {
+    deleteTargetName = name;
     document.getElementById('confirm-message').textContent =
         `确定要删除「${name}」吗？此操作不可撤销。`;
     document.getElementById('confirm-dialog').classList.add('show');
 }
 
 function cancelDelete() {
-    deleteTargetId = null;
+    deleteTargetName = null;
     document.getElementById('confirm-dialog').classList.remove('show');
 }
 
 async function confirmDelete() {
-    if (!deleteTargetId) return;
+    if (!deleteTargetName) return;
 
     try {
-        const res = await fetch(`/api/landmarks/${deleteTargetId}`, {
+        const res = await fetch(`/api/landmarks?name=${encodeURIComponent(deleteTargetName)}`, {
             method: 'DELETE'
         });
 
         if (res.ok) {
-            landmarks = landmarks.filter(l => l.id !== deleteTargetId);
-            filteredLandmarks = filteredLandmarks.filter(l => l.id !== deleteTargetId);
+            landmarks = landmarks.filter(l => l.name !== deleteTargetName);
+            filteredLandmarks = filteredLandmarks.filter(l => l.name !== deleteTargetName);
             renderList();
             showToast('删除成功');
         } else {
@@ -368,18 +367,17 @@ async function loadLandmarks() {
 document.getElementById('landmark-list').addEventListener('click', function(e) {
     const target = e.target.closest('.landmark-info, .edit-btn');
     if (target) {
-        const id = target.getAttribute('data-id');
-        if (id) {
-            goToEdit(id);
+        const name = target.getAttribute('data-name');
+        if (name) {
+            goToEdit(name);
         }
     }
 
     const deleteBtn = e.target.closest('.delete-btn');
     if (deleteBtn) {
-        const id = deleteBtn.getAttribute('data-id');
         const name = deleteBtn.getAttribute('data-name');
-        if (id && name) {
-            showDeleteConfirm(id, name);
+        if (name) {
+            showDeleteConfirm(name);
         }
     }
 });
@@ -504,6 +502,7 @@ function openConfigModal() {
     fetch('/api/config')
         .then(res => res.json())
         .then(config => {
+            document.getElementById('config-title').value = config.title || '';
             document.getElementById('config-region').value = config.region || '';
             document.getElementById('config-boundary-buffer').value = config.boundaryBuffer !== undefined ? Math.round(config.boundaryBuffer * 100) : 10;
         })
@@ -517,6 +516,7 @@ function closeConfigModal() {
 }
 
 async function saveConfig() {
+    const title = document.getElementById('config-title').value.trim();
     const region = document.getElementById('config-region').value.trim();
     const boundaryBuffer = parseFloat(document.getElementById('config-boundary-buffer').value) / 100 || 0.1;
     
@@ -531,7 +531,7 @@ async function saveConfig() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ region, boundaryBuffer })
+            body: JSON.stringify({ title, region, boundaryBuffer })
         });
         
         const data = await res.json();
