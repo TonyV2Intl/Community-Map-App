@@ -609,6 +609,16 @@
                         <input type="number" id="config-boundary-buffer" placeholder="10" min="0" max="50" step="1" />
                         <span class="config-desc">地图拖动范围超出图片尺寸的百分比，默认10%</span>
                     </div>
+                    <div class="config-item">
+                        <label>语音朗读引擎</label>
+                        <select id="config-tts-engine" style="padding: 10px 12px; border: 1px solid var(--cmap-border); border-radius: var(--cmap-radius-md); font-size: 14px; background: white; color: var(--cmap-foreground);">
+                            <option value="auto">自动选择（推荐）</option>
+                            <option value="browser">浏览器自带 (Web Speech)</option>
+                            <option value="server">Cloudflare AI 服务器</option>
+                            <option value="disabled">禁用朗读</option>
+                        </select>
+                        <span class="config-desc">选择地标详情页"朗读介绍"使用的语音引擎。浏览器引擎即时响应但依赖本地语音包；服务器引擎全平台兼容但需 Cloudflare Workers AI 绑定</span>
+                    </div>
 
 
                 </div>

@@ -57,15 +57,16 @@ npm install
 编辑 `.dev.vars` 文件，设置管理员密码：
 
 ```bash
-ADMIN_PASSWORD=your-password-here
+ADMIN_PASSWORD=<your-password-here>
 ```
-
-默认密码为 `admin`，建议修改。
 
 ### 启动开发服务器
 
 ```bash
 npm run dev
+
+# 等效于：
+npx wrangler pages dev public --kv MAPAPP --persist-to .wrangler/state --compatibility-date=2026-07-19
 ```
 
 开发服务器将在 `http://127.0.0.1:8788` 启动。
@@ -130,7 +131,7 @@ rm -rf .wrangler/state
 
 ### 方式二：通过 Wrangler CLI 部署
 
-此方法建议用于私有仓库部署
+此方法建议用于私有仓库部署，不建议将 `wrangler.toml` 放置于公开仓库中
 
 ```bash
 npm run deploy
@@ -276,7 +277,7 @@ pages_build_output_dir = "public"
 | `y`           | number  |  ✅  | 地图 Y 坐标（百分比，0-100）                     |
 | `address`     | string  |  —  | 地址文本，创建/更新有地址时自动触发地理编码                 |
 | `lat`         | number  |  —  | 纬度（GCJ-02 坐标系），为空时高德导航按钮禁用             |
-| `lng`         | number  |  —  | 经度（GCJ-02 坐标系）                         |
+| `lng`         | number  |  —  | 经度（GCJ-02 坐标系），为空时高德导航按钮禁用                         |
 | `description` | string  |  —  | 详细介绍，支持朗读功能                            |
 | `imageUrl`    | string  |  —  | 图片链接                                   |
 | `icon`        | string  |  —  | Font Awesome 图标类名（如 `fa-location-dot`） |
@@ -352,7 +353,7 @@ https://uri.amap.com/navigation?to=121.468,31.214,周公馆&mode=walk&src=localh
 
 # 高德地图（无坐标时，按钮禁用）
 
-# 腾讯地图（有坐标时，GCJ-02→WGS84 转换 + coord_type=1）
+# 腾讯地图（有坐标时）
 https://apis.map.qq.com/uri/v1/routeplan?type=walk&to=周公馆&tocoord=31.212,121.466&coord_type=1
 
 # 腾讯地图（无坐标时，仅传目的地名称）

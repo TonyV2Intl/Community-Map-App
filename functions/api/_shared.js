@@ -3,6 +3,7 @@ export const CONFIG_KEY = 'config';
 export const DEFAULT_REGION = '上海';
 export const DEFAULT_BOUNDARY_BUFFER = 0.1;
 export const DEFAULT_TITLE = '瑞金二路街道便民地图';
+export const DEFAULT_TTS_ENGINE = 'auto';
 
 let defaultConfigCache = null;
 

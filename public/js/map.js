@@ -1,7 +1,8 @@
 let landmarks = [];
 let currentLandmark = null;
 let mapConfig = {
-    region: '上海'
+    region: '上海',
+    ttsEngine: 'auto'
 };
 
 function escapeHtml(text) {
@@ -659,8 +660,41 @@ async function toggleSpeak() {
     }
     if (!currentLandmark) return;
 
+    const engine = mapConfig.ttsEngine || 'auto';
+
+    if (engine === 'disabled') {
+        showToast('朗读功能已被管理员禁用');
+        return;
+    }
+
     const text = (currentLandmark.name || '') + '。' + (currentLandmark.description || '暂无介绍');
 
+    if (engine === 'browser') {
+        try {
+            await preloadVoices();
+            if (!hasChineseVoice()) {
+                showToast('当前浏览器未安装中文语音包');
+                return;
+            }
+            await speakNative(text);
+        } catch (e) {
+            console.error('浏览器 TTS 失败:', e);
+            showToast('浏览器朗读失败');
+        }
+        return;
+    }
+
+    if (engine === 'server') {
+        try {
+            await speakServer(text);
+        } catch (e) {
+            console.error('服务器 TTS 失败:', e);
+            showToast('服务器朗读暂不可用');
+        }
+        return;
+    }
+
+    // auto: try native first, fallback to server, then back to native
     const nativeAvailable = !!window.speechSynthesis;
     let nativeWorks = false;
 
@@ -680,8 +714,12 @@ async function toggleSpeak() {
         try {
             await speakServer(text);
         } catch (e) {
-            console.error('All TTS options failed:', e);
-            showToast('语音朗读暂不可用');
+            // 服务端 503 通常是本地未绑定 AI，降级回浏览器
+            if (nativeAvailable && !hasChineseVoice()) {
+                showToast('请在本地配置浏览器语音包或开启 Cloudflare AI');
+            } else {
+                showToast('语音朗读暂不可用');
+            }
         }
     }
 }
@@ -984,6 +1022,7 @@ async function loadConfig() {
             if (config.region) mapConfig.region = config.region;
             if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
             if (config.title) updatePageTitle(config.title);
+            if (config.ttsEngine) mapConfig.ttsEngine = config.ttsEngine;
             return;
         }
     } catch (e) {

@@ -1,4 +1,4 @@
-import { CONFIG_KEY, DEFAULT_REGION, DEFAULT_BOUNDARY_BUFFER, DEFAULT_TITLE, corsHeaders, jsonResponse } from './_shared';
+import { CONFIG_KEY, DEFAULT_REGION, DEFAULT_BOUNDARY_BUFFER, DEFAULT_TITLE, DEFAULT_TTS_ENGINE, corsHeaders, jsonResponse } from './_shared';
 
 export async function onRequest(context) {
     const { request, env } = context;
@@ -21,7 +21,8 @@ export async function onRequest(context) {
             return jsonResponse({
                 region: DEFAULT_REGION,
                 boundaryBuffer: DEFAULT_BOUNDARY_BUFFER,
-                title: DEFAULT_TITLE
+                title: DEFAULT_TITLE,
+                ttsEngine: DEFAULT_TTS_ENGINE
             });
         }
         
@@ -29,18 +30,20 @@ export async function onRequest(context) {
         return jsonResponse({
             region: config.region || DEFAULT_REGION,
             boundaryBuffer: config.boundaryBuffer !== undefined ? config.boundaryBuffer : DEFAULT_BOUNDARY_BUFFER,
-            title: config.title || DEFAULT_TITLE
+            title: config.title || DEFAULT_TITLE,
+            ttsEngine: config.ttsEngine || DEFAULT_TTS_ENGINE
         });
     }
     
     if (request.method === 'POST') {
-        // 保存配置到 KV（保存 region、boundaryBuffer 和 title）
+        // 保存配置到 KV
         try {
             const body = await request.json();
             const config = {
                 region: body.region || DEFAULT_REGION,
                 boundaryBuffer: body.boundaryBuffer !== undefined ? parseFloat(body.boundaryBuffer) : DEFAULT_BOUNDARY_BUFFER,
-                title: body.title || DEFAULT_TITLE
+                title: body.title || DEFAULT_TITLE,
+                ttsEngine: body.ttsEngine || DEFAULT_TTS_ENGINE
             };
             
             await env.MAPAPP.put(CONFIG_KEY, JSON.stringify(config));
