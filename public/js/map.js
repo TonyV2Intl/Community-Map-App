@@ -613,52 +613,170 @@ function closeDetail() {
 }
 
 let isSpeaking = false;
+let currentAudio = null;
+let voicesReady = false;
 
-function toggleSpeak() {
+function preloadVoices() {
+    if (!window.speechSynthesis) return Promise.reject(new Error('no-speech'));
+    if (voicesReady) return Promise.resolve();
+
+    return new Promise((resolve) => {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+            voicesReady = true;
+            resolve();
+            return;
+        }
+
+        const onVoicesChanged = () => {
+            const v = window.speechSynthesis.getVoices();
+            if (v.length > 0) {
+                voicesReady = true;
+                window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+                resolve();
+            }
+        };
+        window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
+
+        setTimeout(() => {
+            window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+            voicesReady = true;
+            resolve();
+        }, 1500);
+    });
+}
+
+function hasChineseVoice() {
+    if (!window.speechSynthesis) return false;
+    const voices = window.speechSynthesis.getVoices();
+    return voices.some(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
+}
+
+async function toggleSpeak() {
     if (isSpeaking) {
         stopSpeak();
         return;
     }
     if (!currentLandmark) return;
-    if (!window.speechSynthesis) {
-        showToast('您的浏览器不支持语音朗读');
-        return;
-    }
 
     const text = (currentLandmark.name || '') + '。' + (currentLandmark.description || '暂无介绍');
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'zh-CN';
-    utterance.rate = 0.9;
 
-    utterance.onstart = function() {
-        isSpeaking = true;
-        updateSpeakButton(true);
-    };
+    const nativeAvailable = !!window.speechSynthesis;
+    let nativeWorks = false;
 
-    utterance.onend = function() {
-        isSpeaking = false;
-        updateSpeakButton(false);
-    };
-
-    utterance.onerror = function(e) {
-        if (e.error !== 'interrupted') {
-            console.error('语音朗读错误:', e.error);
-            showToast('朗读失败');
+    if (nativeAvailable) {
+        try {
+            await preloadVoices();
+            if (hasChineseVoice()) {
+                await speakNative(text);
+                nativeWorks = true;
+            }
+        } catch (e) {
+            console.warn('Native TTS failed:', e.message);
         }
+    }
+
+    if (!nativeWorks) {
+        try {
+            await speakServer(text);
+        } catch (e) {
+            console.error('All TTS options failed:', e);
+            showToast('语音朗读暂不可用');
+        }
+    }
+}
+
+function speakNative(text) {
+    return new Promise((resolve, reject) => {
+        const synth = window.speechSynthesis;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';
+        utterance.rate = 0.9;
+
+        const voices = synth.getVoices();
+        const zhVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
+        if (zhVoice) {
+            utterance.voice = zhVoice;
+        }
+
+        utterance.onstart = function() {
+            isSpeaking = true;
+            updateSpeakButton(true);
+            resolve();
+        };
+
+        utterance.onend = function() {
+            isSpeaking = false;
+            updateSpeakButton(false);
+        };
+
+        utterance.onerror = function(e) {
+            if (e.error !== 'interrupted' && e.error !== 'canceled') {
+                console.error('Native TTS error:', e.error);
+            }
+            isSpeaking = false;
+            updateSpeakButton(false);
+            reject(new Error(e.error || 'native-error'));
+        };
+
+        synth.speak(utterance);
+    });
+}
+
+async function speakServer(text) {
+    isSpeaking = true;
+    updateSpeakButton(true);
+
+    const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+    });
+
+    if (!response.ok) {
+        throw new Error('Server TTS failed: ' + response.status);
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    currentAudio = audio;
+
+    audio.onended = function() {
         isSpeaking = false;
         updateSpeakButton(false);
+        cleanupAudio();
     };
 
-    window.speechSynthesis.speak(utterance);
+    audio.onerror = function() {
+        isSpeaking = false;
+        updateSpeakButton(false);
+        cleanupAudio();
+        showToast('朗读播放失败');
+    };
+
+    await audio.play();
 }
 
 function stopSpeak() {
     if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
     }
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        cleanupAudio();
+    }
     if (isSpeaking) {
         isSpeaking = false;
         updateSpeakButton(false);
+    }
+}
+
+function cleanupAudio() {
+    if (currentAudio) {
+        URL.revokeObjectURL(currentAudio.src);
+        currentAudio = null;
     }
 }
 

@@ -29,7 +29,7 @@ export async function onRequest(context) {
     }
   }
 
-  if (path.startsWith('/api/') && !path.startsWith('/api/auth')) {
+  if (path.startsWith('/api/') && !path.startsWith('/api/auth') && !path.startsWith('/api/tts')) {
     const method = request.method.toUpperCase();
     if (['POST', 'PUT', 'DELETE'].includes(method)) {
       const token = await getAuthToken(request);
