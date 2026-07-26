@@ -1,30 +1,36 @@
-import { corsHeaders, jsonResponse } from './_shared';
+import {
+  mapImageKey,
+  mapImageMetaKey,
+  resolveMapSlug,
+  DEFAULT_IMAGE_PATH,
+  corsHeaders,
+  jsonResponse
+} from './_shared';
 
-const MAP_IMAGE_KEY = 'mapImage';
-const MAP_META_KEY = 'mapImageMeta';
-const DEFAULT_IMAGE = '/assets/default-map.webp';
 const ALLOWED_TYPES = ['image/webp', 'image/png', 'image/jpeg'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function onRequestGet(context) {
   const { env, request } = context;
   const url = new URL(request.url);
+  const { slug, error, status } = resolveMapSlug(url);
+  if (error) return jsonResponse({ error }, status);
 
   try {
     // ?info 查询参数返回 JSON 元数据（用于控制台查看底图信息）
     if (url.searchParams.has('info')) {
-      const meta = await env.MAPAPP.get(MAP_META_KEY, 'json');
+      const meta = await env.MAPAPP.get(mapImageMetaKey(slug), 'json');
       if (!meta) {
-        return jsonResponse({ hasCustom: false, defaultImage: DEFAULT_IMAGE });
+        return jsonResponse({ hasCustom: false, defaultImage: DEFAULT_IMAGE_PATH });
       }
       return jsonResponse({ hasCustom: true, meta });
     }
 
-    const imageData = await env.MAPAPP.get(MAP_IMAGE_KEY, 'arrayBuffer');
-    const meta = await env.MAPAPP.get(MAP_META_KEY, 'json');
+    const imageData = await env.MAPAPP.get(mapImageKey(slug), 'arrayBuffer');
+    const meta = await env.MAPAPP.get(mapImageMetaKey(slug), 'json');
 
     if (!imageData || !meta) {
-      return Response.redirect(`${url.origin}${DEFAULT_IMAGE}`, 302);
+      return Response.redirect(`${url.origin}${DEFAULT_IMAGE_PATH}`, 302);
     }
 
     return new Response(imageData, {
@@ -36,12 +42,15 @@ export async function onRequestGet(context) {
     });
   } catch (e) {
     console.error('GET /api/map-image error:', e);
-    return Response.redirect(`${url.origin}${DEFAULT_IMAGE}`, 302);
+    return Response.redirect(`${url.origin}${DEFAULT_IMAGE_PATH}`, 302);
   }
 }
 
 export async function onRequestPost(context) {
   const { request, env } = context;
+  const url = new URL(request.url);
+  const { slug, error, status } = resolveMapSlug(url);
+  if (error) return jsonResponse({ error }, status);
 
   try {
     const contentType = request.headers.get('Content-Type') || '';
@@ -67,8 +76,8 @@ export async function onRequestPost(context) {
 
     const arrayBuffer = await file.arrayBuffer();
 
-    await env.MAPAPP.put(MAP_IMAGE_KEY, arrayBuffer);
-    await env.MAPAPP.put(MAP_META_KEY, JSON.stringify({
+    await env.MAPAPP.put(mapImageKey(slug), arrayBuffer);
+    await env.MAPAPP.put(mapImageMetaKey(slug), JSON.stringify({
       type: file.type,
       size: file.size,
       name: file.name,
@@ -83,11 +92,14 @@ export async function onRequestPost(context) {
 }
 
 export async function onRequestDelete(context) {
-  const { env } = context;
+  const { env, request } = context;
+  const url = new URL(request.url);
+  const { slug, error, status } = resolveMapSlug(url);
+  if (error) return jsonResponse({ error }, status);
 
   try {
-    await env.MAPAPP.delete(MAP_IMAGE_KEY);
-    await env.MAPAPP.delete(MAP_META_KEY);
+    await env.MAPAPP.delete(mapImageKey(slug));
+    await env.MAPAPP.delete(mapImageMetaKey(slug));
     return jsonResponse({ success: true });
   } catch (e) {
     console.error('DELETE /api/map-image error:', e);

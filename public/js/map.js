@@ -14,11 +14,6 @@ function escapeHtml(text) {
         .replace(/'/g, '&#039;');
 }
 
-function validateColor(color) {
-    const hexPattern = /^#[0-9a-fA-F]{6}$/;
-    return hexPattern.test(color) ? color : '#4285f4';
-}
-
 const viewport = document.getElementById('map-viewport');
 const wrapper = document.getElementById('map-transform-wrapper');
 const markersContainer = document.getElementById('markers-container');
@@ -276,28 +271,6 @@ viewport.addEventListener('wheel', function(e) {
         applyTransform();
     }
 }, { passive: false });
-
-function getIconClass(icon) {
-    const iconMap = {
-        'fa-location-dot': 'fa-location-dot',
-        'fa-hospital': 'fa-hospital',
-        'fa-film': 'fa-film',
-        'fa-hotel': 'fa-hotel',
-        'fa-landmark': 'fa-landmark',
-        'fa-tree': 'fa-tree',
-        'fa-utensils': 'fa-utensils',
-        'fa-music': 'fa-music',
-        'fa-book': 'fa-book',
-        'fa-shop': 'fa-shop',
-        'fa-school': 'fa-school',
-        'fa-building': 'fa-building',
-        'fa-mosque': 'fa-mosque',
-        'fa-church': 'fa-church',
-        'fa-museum': 'fa-museum',
-        'fa-monument': 'fa-monument'
-    };
-    return iconMap[icon] || 'fa-location-dot';
-}
 
 function renderMarkers() {
     markersContainer.replaceChildren();
@@ -796,23 +769,9 @@ function handleMenuSearch(value) {
     renderMenuItems(value);
 }
 
-function showToast(message) {
-    let toast = document.querySelector('.toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.className = 'toast';
-        document.body.appendChild(toast);
-    }
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2000);
-}
-
 async function loadLandmarks() {
     try {
-        const res = await fetch('/api/landmarks');
+        const res = await fetch(mapApiUrl('/api/landmarks'));
         if (res.ok) {
             const data = await res.json();
             landmarks = data;
@@ -837,6 +796,7 @@ if (document.readyState === 'complete') {
 
 function init() {
     const img = document.querySelector('#map-transform-wrapper img');
+    img.src = mapApiUrl('/api/map-image');
     function onImageReady() {
         const iw = img.naturalWidth || img.offsetWidth;
         const ih = img.naturalHeight || img.offsetHeight;
@@ -860,7 +820,7 @@ function init() {
 async function loadConfig() {
     // 优先从 API 获取配置（可能已在控制台修改）
     try {
-        const res = await fetch('/api/config');
+        const res = await fetch(mapApiUrl('/api/config'));
         if (res.ok) {
             const config = await res.json();
             if (config.region) mapConfig.region = config.region;

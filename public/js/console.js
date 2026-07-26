@@ -1,31 +1,11 @@
-const LIST_KEY = 'landmarks:list';
-const CONFIG_KEY = 'config';
-
 let landmarks = [];
 let filteredLandmarks = [];
 let deleteTargetName = null;
 
-function getIconClass(icon) {
-    const iconMap = {
-        'fa-location-dot': 'fa-location-dot',
-        'fa-hospital': 'fa-hospital',
-        'fa-film': 'fa-film',
-        'fa-hotel': 'fa-hotel',
-        'fa-landmark': 'fa-landmark',
-        'fa-tree': 'fa-tree',
-        'fa-utensils': 'fa-utensils',
-        'fa-music': 'fa-music',
-        'fa-book': 'fa-book',
-        'fa-shop': 'fa-shop',
-        'fa-school': 'fa-school',
-        'fa-building': 'fa-building',
-        'fa-mosque': 'fa-mosque',
-        'fa-church': 'fa-church',
-        'fa-museum': 'fa-museum',
-        'fa-monument': 'fa-monument'
-    };
-    return iconMap[icon] || 'fa-location-dot';
-}
+// 初始化当前地图指示器和返回链接
+document.getElementById('current-map-slug').textContent = getConsoleMapSlug();
+const backLink = document.getElementById('back-to-map-link');
+if (backLink) backLink.href = '/m/' + encodeURIComponent(getConsoleMapSlug());
 
 function renderList() {
     const listEl = document.getElementById('landmark-list');
@@ -153,15 +133,16 @@ function handleSearch(query) {
 }
 
 function goToEdit(name) {
+    const mapParam = `map=${encodeURIComponent(getConsoleMapSlug())}`;
     if (name) {
-        window.location.href = `/console-edit?name=${encodeURIComponent(name)}`;
+        window.location.href = `/console-edit?${mapParam}&name=${encodeURIComponent(name)}`;
     } else {
-        window.location.href = '/console-edit';
+        window.location.href = `/console-edit?${mapParam}`;
     }
 }
 
 function goBack() {
-    window.location.href = '/';
+    window.location.href = '/m/' + encodeURIComponent(getConsoleMapSlug());
 }
 
 async function handleLogout() {
@@ -196,7 +177,7 @@ async function confirmDelete() {
     if (!deleteTargetName) return;
 
     try {
-        const res = await fetch(`/api/landmarks?name=${encodeURIComponent(deleteTargetName)}`, {
+        const res = await fetch(`${mapApiUrl('/api/landmarks')}&name=${encodeURIComponent(deleteTargetName)}`, {
             method: 'DELETE'
         });
 
@@ -225,7 +206,7 @@ async function exportData() {
     try {
         // 同时获取配置数据
         let config = null;
-        const configRes = await fetch('/api/config');
+        const configRes = await fetch(mapApiUrl('/api/config'));
         if (configRes.ok) {
             config = await configRes.json();
         }
@@ -296,7 +277,7 @@ async function handleImportFile(input) {
         }
 
         // 导入地标
-        const lmRes = await fetch('/api/landmarks', {
+        const lmRes = await fetch(mapApiUrl('/api/landmarks'), {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(landmarksArr)
@@ -314,7 +295,7 @@ async function handleImportFile(input) {
 
         // 导入配置（如果有）
         if (configData) {
-            const cfgRes = await fetch('/api/config', {
+            const cfgRes = await fetch(mapApiUrl('/api/config'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(configData)
@@ -343,7 +324,7 @@ async function loadLandmarks() {
     }
     
     try {
-        const res = await fetch('/api/landmarks');
+        const res = await fetch(mapApiUrl('/api/landmarks'));
         if (res.ok) {
             const data = await res.json();
             landmarks = data;
@@ -394,6 +375,8 @@ document.addEventListener('keydown', function(e) {
             cancelDelete();
         } else if (document.getElementById('kv-modal').classList.contains('show')) {
             closeKvModal();
+        } else if (document.getElementById('maps-modal').classList.contains('show')) {
+            closeMapsModal();
         }
     }
 });
@@ -419,9 +402,9 @@ async function viewKvRaw() {
     modal.classList.add('show');
     
     try {
-        const res = await fetch('/api/kv-debug');
+        const res = await fetch(mapApiUrl('/api/kv-debug'));
         const data = await res.json();
-        
+
         if (data.error) {
             body.replaceChildren();
             const errorDiv = document.createElement('div');
@@ -438,26 +421,12 @@ async function viewKvRaw() {
             body.appendChild(errorDiv);
             return;
         }
-        
+
         body.replaceChildren();
-        
-        // 合并所有KV数据
-        const kvData = {};
-        
-        // 添加地标数据
-        if (data.exists && data.raw) {
-            kvData[LIST_KEY] = JSON.parse(data.raw);
-        } else {
-            kvData[LIST_KEY] = null;
-        }
-        
-        // 添加配置数据
-        kvData[CONFIG_KEY] = data.config || null;
-        
-        // 检查是否所有数据都为空
-        const allEmpty = Object.values(kvData).every(v => v === null);
-        
-        if (allEmpty) {
+
+        const maps = data.maps || [];
+
+        if (maps.length === 0) {
             body.classList.add('empty-kv');
             const emptyIcon = document.createElement('i');
             emptyIcon.className = 'fa-solid fa-database';
@@ -466,11 +435,77 @@ async function viewKvRaw() {
             emptyIcon.style.opacity = '0.5';
             body.appendChild(emptyIcon);
             const emptyP = document.createElement('p');
-            emptyP.textContent = 'KV数据为空';
+            emptyP.textContent = 'KV数据为空（点击"还原默认"初始化）';
             body.appendChild(emptyP);
         } else {
             body.classList.remove('empty-kv');
-            body.textContent = JSON.stringify(kvData, null, 2);
+
+            // 显示概览统计
+            const summary = document.createElement('div');
+            summary.className = 'kv-summary';
+            summary.textContent = `共 ${maps.length} 个地图`;
+            body.appendChild(summary);
+
+            // 每个地图一个卡片
+            maps.forEach(map => {
+                const card = document.createElement('div');
+                card.className = 'kv-map-card';
+
+                const header = document.createElement('div');
+                header.className = 'kv-map-header';
+
+                const titleSpan = document.createElement('strong');
+                titleSpan.textContent = map.title || map.slug;
+                header.appendChild(titleSpan);
+
+                const slugSpan = document.createElement('span');
+                slugSpan.className = 'kv-map-slug';
+                slugSpan.textContent = '/m/' + map.slug;
+                header.appendChild(slugSpan);
+
+                card.appendChild(header);
+
+                const info = document.createElement('div');
+                info.className = 'kv-map-info';
+
+                const items = [
+                    ['地标数', map.landmarksCount + ' 个'],
+                    ['区域', map.config ? map.config.region : '-'],
+                    ['边界缓冲', map.config ? map.config.boundaryBuffer : '-'],
+                    ['自定义底图', map.hasCustomImage ? `有 (${(map.imageMeta.size / 1024).toFixed(1)} KB)` : '使用默认'],
+                    ['创建时间', map.createdAt ? new Date(map.createdAt).toLocaleString('zh-CN') : '-'],
+                    ['更新时间', map.updatedAt ? new Date(map.updatedAt).toLocaleString('zh-CN') : '-']
+                ];
+
+                items.forEach(([label, value]) => {
+                    const row = document.createElement('div');
+                    row.className = 'kv-map-row';
+                    const labelEl = document.createElement('span');
+                    labelEl.className = 'kv-map-label';
+                    labelEl.textContent = label;
+                    const valueEl = document.createElement('span');
+                    valueEl.className = 'kv-map-value';
+                    valueEl.textContent = value;
+                    row.appendChild(labelEl);
+                    row.appendChild(valueEl);
+                    info.appendChild(row);
+                });
+
+                card.appendChild(info);
+                body.appendChild(card);
+            });
+
+            // 原始 JSON 折叠
+            const rawSection = document.createElement('details');
+            rawSection.className = 'kv-raw-section';
+            const summary2 = document.createElement('summary');
+            summary2.textContent = '查看原始 JSON';
+            rawSection.appendChild(summary2);
+            const pre = document.createElement('pre');
+            pre.className = 'kv-raw-json';
+            pre.textContent = JSON.stringify(maps, null, 2);
+            rawSection.appendChild(pre);
+            body.appendChild(rawSection);
         }
     } catch (e) {
         console.error('获取KV失败:', e);
@@ -499,7 +534,7 @@ function openConfigModal() {
     modal.classList.add('show');
     
     // 加载当前配置
-    fetch('/api/config')
+    fetch(mapApiUrl('/api/config'))
         .then(res => res.json())
         .then(config => {
             document.getElementById('config-title').value = config.title || '';
@@ -526,7 +561,7 @@ async function saveConfig() {
     }
     
     try {
-        const res = await fetch('/api/config', {
+        const res = await fetch(mapApiUrl('/api/config'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -568,7 +603,7 @@ async function clearKvValue() {
     }
     
     try {
-        const res = await fetch('/api/kv-debug', { method: 'DELETE' });
+        const res = await fetch(mapApiUrl('/api/kv-debug'), { method: 'DELETE' });
         const data = await res.json();
         
         if (data.success) {
@@ -590,7 +625,7 @@ async function restoreDefaults() {
     }
 
     try {
-        const res = await fetch('/api/kv-debug', {
+        const res = await fetch(mapApiUrl('/api/kv-debug'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ restoreDefaults: true })
@@ -652,7 +687,7 @@ async function loadMapInfo() {
     preview.appendChild(loadingDiv);
 
     try {
-        const res = await fetch('/api/map-image?info');
+        const res = await fetch(mapApiUrl('/api/map-image?info'));
         const data = await res.json();
 
         if (data.hasCustom && data.meta) {
@@ -674,7 +709,7 @@ async function loadMapInfo() {
             // 预览图片（加时间戳避免缓存）
             preview.replaceChildren();
             const img = document.createElement('img');
-            img.src = '/api/map-image?t=' + Date.now();
+            img.src = mapApiUrl('/api/map-image') + '&t=' + Date.now();
             img.alt = '当前底图';
             preview.appendChild(img);
         } else {
@@ -732,7 +767,7 @@ async function handleMapUpload(input) {
     formData.append('image', file);
 
     try {
-        const res = await fetch('/api/map-image', {
+        const res = await fetch(mapApiUrl('/api/map-image'), {
             method: 'POST',
             body: formData
         });
@@ -759,7 +794,7 @@ async function handleMapReset() {
     }
 
     try {
-        const res = await fetch('/api/map-image', {
+        const res = await fetch(mapApiUrl('/api/map-image'), {
             method: 'DELETE'
         });
 
@@ -781,5 +816,242 @@ async function handleMapReset() {
 document.getElementById('map-modal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeMapModal();
+    }
+});
+
+// ==================== 地图管理 ====================
+
+function openMapsModal() {
+    document.getElementById('maps-modal').classList.add('show');
+    loadMapsList();
+}
+
+function closeMapsModal() {
+    document.getElementById('maps-modal').classList.remove('show');
+}
+
+async function loadMapsList() {
+    const listEl = document.getElementById('maps-list');
+    listEl.replaceChildren();
+
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'maps-loading';
+    const spinner = document.createElement('i');
+    spinner.className = 'fa-solid fa-spinner fa-spin';
+    loadingDiv.appendChild(spinner);
+    loadingDiv.appendChild(document.createTextNode(' 加载中...'));
+    listEl.appendChild(loadingDiv);
+
+    try {
+        const res = await fetch('/api/maps');
+        if (res.ok) {
+            const maps = await res.json();
+            renderMapsList(maps);
+        } else {
+            listEl.replaceChildren();
+            const p = document.createElement('p');
+            p.className = 'maps-empty';
+            p.textContent = '加载失败';
+            listEl.appendChild(p);
+        }
+    } catch (e) {
+        console.error('加载地图列表失败:', e);
+        listEl.replaceChildren();
+        const p = document.createElement('p');
+        p.className = 'maps-empty';
+        p.textContent = '加载失败，请检查网络';
+        listEl.appendChild(p);
+    }
+}
+
+function renderMapsList(maps) {
+    const listEl = document.getElementById('maps-list');
+    listEl.replaceChildren();
+    const currentSlug = getConsoleMapSlug();
+
+    if (!maps || maps.length === 0) {
+        const p = document.createElement('p');
+        p.className = 'maps-empty';
+        p.textContent = '暂无地图，点击下方表单创建';
+        listEl.appendChild(p);
+        return;
+    }
+
+    maps.forEach(map => {
+        const item = document.createElement('div');
+        item.className = 'map-item' + (map.slug === currentSlug ? ' active' : '');
+
+        const info = document.createElement('div');
+        info.className = 'map-item-info';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'map-item-title';
+        titleEl.textContent = map.title || map.slug;
+        info.appendChild(titleEl);
+
+        const slugEl = document.createElement('div');
+        slugEl.className = 'map-item-slug';
+        slugEl.textContent = '/m/' + map.slug;
+        info.appendChild(slugEl);
+
+        if (map.createdAt) {
+            const dateEl = document.createElement('div');
+            dateEl.className = 'map-item-date';
+            dateEl.textContent = '创建于 ' + new Date(map.createdAt).toLocaleString('zh-CN');
+            info.appendChild(dateEl);
+        }
+        item.appendChild(info);
+
+        const actions = document.createElement('div');
+        actions.className = 'map-item-actions';
+
+        if (map.slug !== currentSlug) {
+            const switchBtn = document.createElement('button');
+            switchBtn.type = 'button';
+            switchBtn.className = 'map-switch-btn';
+            switchBtn.textContent = '切换';
+            switchBtn.onclick = () => consoleSwitchMap(map.slug);
+            actions.appendChild(switchBtn);
+        } else {
+            const current = document.createElement('span');
+            current.className = 'map-current-tag';
+            current.textContent = '当前';
+            actions.appendChild(current);
+        }
+
+        const renameBtn = document.createElement('button');
+        renameBtn.type = 'button';
+        renameBtn.className = 'map-rename-btn';
+        renameBtn.textContent = '重命名';
+        renameBtn.onclick = () => handleRenameMap(map.slug, map.title);
+        actions.appendChild(renameBtn);
+
+        if (map.slug !== 'default') {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'map-delete-btn';
+            deleteBtn.textContent = '删除';
+            deleteBtn.onclick = () => handleDeleteMap(map.slug, map.title);
+            actions.appendChild(deleteBtn);
+        }
+
+        item.appendChild(actions);
+        listEl.appendChild(item);
+    });
+}
+
+function consoleSwitchMap(slug) {
+    switchEditMap(slug);
+    document.getElementById('current-map-slug').textContent = slug;
+    const backLink = document.getElementById('back-to-map-link');
+    if (backLink) backLink.href = '/m/' + encodeURIComponent(slug);
+    loadLandmarks();
+    showToast('已切换到地图：' + slug);
+    closeMapsModal();
+}
+
+async function handleCreateMap() {
+    const slug = document.getElementById('new-map-slug').value.trim();
+    const title = document.getElementById('new-map-title').value.trim();
+
+    if (!slug) {
+        showToast('请填写地图标识 slug');
+        return;
+    }
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+        showToast('slug 仅允许小写字母、数字和连字符');
+        return;
+    }
+    if (!title) {
+        showToast('请填写地图标题');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/maps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug, title })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast('地图 "' + title + '" 创建成功');
+            document.getElementById('new-map-slug').value = '';
+            document.getElementById('new-map-title').value = '';
+            await loadMapsList();
+        } else {
+            showToast('创建失败：' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('创建地图失败:', e);
+        showToast('创建失败，请检查网络');
+    }
+}
+
+async function handleDeleteMap(slug, title) {
+    if (!confirm('确定要删除地图 "' + title + '" (' + slug + ') 吗？\n该地图的所有地标和底图将被永久删除，此操作不可撤销。')) {
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/maps?slug=' + encodeURIComponent(slug), { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast('地图 "' + title + '" 已删除');
+            if (slug === getConsoleMapSlug()) {
+                consoleSwitchMap('default');
+            }
+            await loadMapsList();
+        } else {
+            showToast('删除失败：' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('删除地图失败:', e);
+        showToast('删除失败，请检查网络');
+    }
+}
+
+function handleRenameMap(oldSlug, oldTitle) {
+    const newSlug = prompt('输入新的 slug（小写字母、数字、连字符，留空则不变）：', oldSlug);
+    if (newSlug === null) return;
+    const newTitle = prompt('输入新的标题：', oldTitle);
+    if (newTitle === null) return;
+
+    const body = {};
+    if (newSlug.trim() && newSlug.trim() !== oldSlug) body.newSlug = newSlug.trim();
+    if (newTitle.trim() && newTitle.trim() !== oldTitle) body.title = newTitle.trim();
+
+    if (!body.newSlug && !body.title) {
+        showToast('未做任何修改');
+        return;
+    }
+
+    fetch('/api/maps?slug=' + encodeURIComponent(oldSlug), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.slug) {
+                showToast('重命名成功');
+                if (oldSlug === getConsoleMapSlug()) {
+                    consoleSwitchMap(data.slug);
+                }
+                loadMapsList();
+            } else {
+                showToast('重命名失败：' + (data.error || '未知错误'));
+            }
+        })
+        .catch(e => {
+            console.error('重命名地图失败:', e);
+            showToast('重命名失败，请检查网络');
+        });
+}
+
+// 点击遮罩关闭地图管理模态框
+document.getElementById('maps-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeMapsModal();
     }
 });

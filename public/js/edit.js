@@ -15,8 +15,12 @@ let pickerMinScale = 1;
 
 const urlParams = new URLSearchParams(window.location.search);
 const nameParam = urlParams.get('name');
+const mapParam = urlParams.get('map') || 'default';
 
 function init() {
+    // 动态设置底图 src（带 map 参数）
+    document.getElementById('picker-img').src = `/api/map-image?map=${encodeURIComponent(mapParam)}`;
+
     if (nameParam) {
         isNew = false;
         editingName = nameParam;
@@ -51,7 +55,7 @@ function init() {
 
 async function loadLandmark(name) {
     try {
-        const res = await fetch(`/api/landmarks?name=${encodeURIComponent(name)}`);
+        const res = await fetch(`/api/landmarks?map=${encodeURIComponent(mapParam)}&name=${encodeURIComponent(name)}`);
         if (res.ok) {
             const landmark = await res.json();
             fillForm(landmark);
@@ -536,13 +540,13 @@ async function saveLandmark() {
     try {
         let res;
         if (isNew) {
-            res = await fetch('/api/landmarks', {
+            res = await fetch(`/api/landmarks?map=${encodeURIComponent(mapParam)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
         } else {
-            res = await fetch(`/api/landmarks?name=${encodeURIComponent(editingName)}`, {
+            res = await fetch(`/api/landmarks?map=${encodeURIComponent(mapParam)}&name=${encodeURIComponent(editingName)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -552,7 +556,7 @@ async function saveLandmark() {
         if (res.ok) {
             showToast(isNew ? '创建成功' : '保存成功');
             setTimeout(() => {
-                window.location.href = '/console';
+                window.location.href = `/console?map=${encodeURIComponent(mapParam)}`;
             }, 800);
         } else {
             showToast('保存失败，请重试');
@@ -564,7 +568,7 @@ async function saveLandmark() {
 }
 
 function goBack() {
-    window.location.href = '/console';
+    window.location.href = `/console?map=${encodeURIComponent(mapParam)}`;
 }
 
 document.getElementById('pos-picker').addEventListener('click', function(e) {

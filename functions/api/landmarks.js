@@ -1,13 +1,15 @@
-import { getAllLandmarks, saveAllLandmarks, corsHeaders, jsonResponse, geocodeAddress } from './_shared';
+import { getMapLandmarks, saveMapLandmarks, resolveMapSlug, corsHeaders, jsonResponse, geocodeAddress } from './_shared';
 
 export async function onRequestGet(context) {
   const env = context.env;
   const url = new URL(context.request.url);
   const name = url.searchParams.get('name');
+  const { slug, error, status } = resolveMapSlug(url);
+  if (error) return jsonResponse({ error }, status);
 
   try {
-    const landmarks = await getAllLandmarks(env);
-    
+    const landmarks = await getMapLandmarks(env, slug);
+
     if (name) {
       const decodedName = decodeURIComponent(name);
       const landmark = landmarks.find(l => l.name === decodedName);
@@ -16,7 +18,7 @@ export async function onRequestGet(context) {
       }
       return jsonResponse(landmark);
     }
-    
+
     return jsonResponse(landmarks);
   } catch (e) {
     console.error('GET /api/landmarks error:', e);
@@ -27,6 +29,9 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const request = context.request;
   const env = context.env;
+  const url = new URL(request.url);
+  const { slug, error, status } = resolveMapSlug(url);
+  if (error) return jsonResponse({ error }, status);
 
   try {
     const data = await request.json();
@@ -35,9 +40,9 @@ export async function onRequestPost(context) {
       return jsonResponse({ error: 'Name is required' }, 400);
     }
 
-    const landmarks = await getAllLandmarks(env);
+    const landmarks = await getMapLandmarks(env, slug);
     const name = data.name.trim();
-    
+
     // 检查名称是否重复
     if (landmarks.some(l => l.name === name)) {
       return jsonResponse({ error: `地标 "${name}" 已存在` }, 409);
@@ -73,7 +78,7 @@ export async function onRequestPost(context) {
     }
 
     landmarks.push(newLandmark);
-    await saveAllLandmarks(env, landmarks);
+    await saveMapLandmarks(env, slug, landmarks);
 
     return jsonResponse(newLandmark, 201);
   } catch (e) {
@@ -87,12 +92,14 @@ export async function onRequestPut(context) {
   const env = context.env;
   const url = new URL(context.request.url);
   const name = url.searchParams.get('name');
+  const { slug, error, status } = resolveMapSlug(url);
+  if (error) return jsonResponse({ error }, status);
 
   try {
     // 单个地标更新（有 name 参数）
     if (name) {
       const data = await request.json();
-      const landmarks = await getAllLandmarks(env);
+      const landmarks = await getMapLandmarks(env, slug);
       const decodedName = decodeURIComponent(name);
       const index = landmarks.findIndex(l => l.name === decodedName);
 
@@ -131,7 +138,7 @@ export async function onRequestPut(context) {
       }
 
       landmarks[index] = updated;
-      await saveAllLandmarks(env, landmarks);
+      await saveMapLandmarks(env, slug, landmarks);
 
       return jsonResponse(updated);
     }
@@ -188,7 +195,7 @@ export async function onRequestPut(context) {
       }
     }
 
-    await saveAllLandmarks(env, validLandmarks);
+    await saveMapLandmarks(env, slug, validLandmarks);
 
     return jsonResponse({ success: true, count: validLandmarks.length });
   } catch (e) {
@@ -201,13 +208,15 @@ export async function onRequestDelete(context) {
   const env = context.env;
   const url = new URL(context.request.url);
   const name = url.searchParams.get('name');
+  const { slug, error, status } = resolveMapSlug(url);
+  if (error) return jsonResponse({ error }, status);
 
   if (!name) {
     return jsonResponse({ error: 'Name parameter is required' }, 400);
   }
 
   try {
-    const landmarks = await getAllLandmarks(env);
+    const landmarks = await getMapLandmarks(env, slug);
     const decodedName = decodeURIComponent(name);
     const index = landmarks.findIndex(l => l.name === decodedName);
 
@@ -216,7 +225,7 @@ export async function onRequestDelete(context) {
     }
 
     landmarks.splice(index, 1);
-    await saveAllLandmarks(env, landmarks);
+    await saveMapLandmarks(env, slug, landmarks);
 
     return jsonResponse({ success: true });
   } catch (e) {

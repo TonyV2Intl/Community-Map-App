@@ -257,6 +257,93 @@
             white-space: normal;
             word-break: normal;
         }
+        .kv-summary {
+            padding: 8px 12px;
+            background: var(--cmap-muted);
+            border-radius: var(--cmap-radius-md);
+            font-size: 13px;
+            color: var(--cmap-muted-foreground);
+            margin-bottom: 12px;
+            font-family: inherit;
+            white-space: normal;
+            word-break: normal;
+        }
+        .kv-map-card {
+            border: 1px solid var(--cmap-border);
+            border-radius: var(--cmap-radius-md);
+            margin-bottom: 10px;
+            background: white;
+            font-family: inherit;
+            white-space: normal;
+            word-break: normal;
+        }
+        .kv-map-header {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--cmap-border);
+            background: var(--cmap-muted);
+            border-radius: var(--cmap-radius-md) var(--cmap-radius-md) 0 0;
+        }
+        .kv-map-header strong {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--cmap-foreground);
+        }
+        .kv-map-slug {
+            font-size: 12px;
+            color: var(--cmap-muted-foreground);
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .kv-map-info {
+            padding: 10px 14px;
+        }
+        .kv-map-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 13px;
+            border-bottom: 1px solid var(--cmap-border);
+        }
+        .kv-map-row:last-child {
+            border-bottom: none;
+        }
+        .kv-map-label {
+            color: var(--cmap-muted-foreground);
+        }
+        .kv-map-value {
+            color: var(--cmap-foreground);
+            font-weight: 500;
+            text-align: right;
+        }
+        .kv-raw-section {
+            margin-top: 12px;
+            border-top: 1px solid var(--cmap-border);
+            padding-top: 8px;
+            font-family: inherit;
+            white-space: normal;
+            word-break: normal;
+        }
+        .kv-raw-section summary {
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--cmap-muted-foreground);
+            padding: 4px 0;
+        }
+        .kv-raw-section summary:hover {
+            color: var(--cmap-foreground);
+        }
+        .kv-raw-json {
+            margin: 0;
+            padding: 8px 12px;
+            background: var(--cmap-muted);
+            border-radius: var(--cmap-radius-sm);
+            font-size: 12px;
+            max-height: 200px;
+            overflow: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
         .config-modal-body {
             flex: 1;
             padding: 16px;
@@ -460,7 +547,158 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
-        
+
+        /* 当前地图指示器 */
+        .current-map-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: var(--cmap-muted);
+            font-size: 13px;
+            color: var(--cmap-muted-foreground);
+        }
+        .current-map-bar strong {
+            color: var(--cmap-primary);
+            font-weight: 600;
+        }
+
+        /* 地图管理模态框 */
+        .maps-modal-body {
+            flex: 1;
+            padding: 16px;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .maps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .maps-loading,
+        .maps-empty {
+            text-align: center;
+            padding: 24px 12px;
+            color: var(--cmap-muted-foreground);
+            font-size: 14px;
+        }
+        .map-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border: 1px solid var(--cmap-border);
+            border-radius: var(--cmap-radius-md);
+            background: white;
+            gap: 12px;
+        }
+        .map-item.active {
+            border-color: var(--cmap-primary);
+            background: rgba(66, 133, 244, 0.04);
+        }
+        .map-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .map-item-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--cmap-foreground);
+        }
+        .map-item-slug {
+            font-size: 12px;
+            color: var(--cmap-muted-foreground);
+            margin-top: 2px;
+        }
+        .map-item-date {
+            font-size: 11px;
+            color: var(--color-neutral-400);
+            margin-top: 2px;
+        }
+        .map-item-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .map-switch-btn,
+        .map-rename-btn,
+        .map-delete-btn {
+            padding: 6px 10px;
+            border-radius: var(--cmap-radius-sm);
+            font-size: 12px;
+            border: 1px solid var(--cmap-border);
+            background: white;
+            color: var(--cmap-foreground);
+            cursor: pointer;
+        }
+        .map-switch-btn {
+            background: var(--cmap-primary);
+            color: white;
+            border-color: var(--cmap-primary);
+        }
+        .map-rename-btn:hover {
+            background: var(--cmap-muted);
+        }
+        .map-delete-btn {
+            color: #ea4335;
+            border-color: #fecaca;
+        }
+        .map-delete-btn:hover {
+            background: #fee2e2;
+        }
+        .map-current-tag {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: 10px;
+            background: rgba(66, 133, 244, 0.1);
+            color: var(--cmap-primary);
+        }
+        .map-create-form {
+            border-top: 1px solid var(--cmap-border);
+            padding-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .map-create-form h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--cmap-foreground);
+            margin: 0;
+        }
+        .map-create-row {
+            display: flex;
+            gap: 8px;
+        }
+        .map-create-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--cmap-border);
+            border-radius: var(--cmap-radius-md);
+            font-size: 14px;
+        }
+        .map-create-row input:focus {
+            outline: none;
+            border-color: var(--cmap-primary);
+        }
+        .map-create-btn {
+            padding: 8px 16px;
+            background: var(--cmap-primary);
+            color: white;
+            border: none;
+            border-radius: var(--cmap-radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .map-create-btn:hover {
+            opacity: 0.9;
+        }
+
     </style>
 </head>
 <body>
@@ -486,6 +724,10 @@
                         <i class="fa-solid fa-upload" style="font-size: 14px;"></i>
                         <span>导入</span>
                     </button>
+                    <button type="button" class="action-btn" aria-label="地图管理" onclick="openMapsModal()">
+                        <i class="fa-solid fa-map" style="font-size: 14px;"></i>
+                        <span>地图</span>
+                    </button>
                     <button type="button" class="action-btn" aria-label="底图管理" onclick="openMapModal()">
                         <i class="fa-solid fa-image" style="font-size: 14px;"></i>
                         <span>底图</span>
@@ -504,10 +746,15 @@
                 </div>
             </header>
 
-            <a href="/" class="back-to-map">
+            <a href="#" id="back-to-map-link" class="back-to-map">
                 <i class="fa-solid fa-map-location-dot" style="font-size: 13px;"></i>
                 返回地图
             </a>
+
+            <div class="current-map-bar">
+                <span>当前编辑：</span>
+                <strong id="current-map-slug">default</strong>
+            </div>
 
             <div class="search-bar">
                 <div class="search-wrapper">
@@ -667,6 +914,31 @@
             </div>
             <div class="kv-modal-footer">
                 <button class="kv-close-btn" onclick="closeMapModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="kv-modal" id="maps-modal">
+        <div class="kv-modal-box">
+            <div class="kv-modal-header">
+                <h3>地图管理</h3>
+                <button class="kv-modal-close" onclick="closeMapsModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="maps-modal-body">
+                <div class="maps-list" id="maps-list"></div>
+                <div class="map-create-form">
+                    <h4>创建新地图</h4>
+                    <div class="map-create-row">
+                        <input type="text" id="new-map-slug" placeholder="标识（如 ruijin）" pattern="[a-z0-9-]+" />
+                        <input type="text" id="new-map-title" placeholder="标题（如 瑞金二路街道）" />
+                        <button type="button" class="map-create-btn" onclick="handleCreateMap()">创建</button>
+                    </div>
+                </div>
+            </div>
+            <div class="kv-modal-footer">
+                <button class="kv-close-btn" onclick="closeMapsModal()">关闭</button>
             </div>
         </div>
     </div>
