@@ -27,29 +27,44 @@ export async function onRequestPost(context) {
       ? text.substring(0, MAX_TEXT_LENGTH)
       : text;
 
-    const response = await env.AI.run(
+    const result = await env.AI.run(
       '@cf/myshell-ai/melotts',
       { prompt: truncated, lang: 'zh' }
     );
 
-    if (!response || response.byteLength === 0) {
+    // Workers AI TTS 模型返回的可能是 Response 对象或 ArrayBuffer
+    let audioBuffer;
+    if (result instanceof Response) {
+      audioBuffer = await result.arrayBuffer();
+    } else if (result instanceof ArrayBuffer) {
+      audioBuffer = result;
+    } else if (result && result.byteLength !== undefined) {
+      audioBuffer = result;
+    } else {
+      return new Response(JSON.stringify({ error: 'Unexpected AI response type' }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders() }
+      });
+    }
+
+    if (!audioBuffer || audioBuffer.byteLength === 0) {
       return new Response(JSON.stringify({ error: 'Empty response from AI' }), {
         status: 502,
         headers: { 'Content-Type': 'application/json', ...corsHeaders() }
       });
     }
 
-    return new Response(response, {
+    return new Response(audioBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
-        'Content-Length': response.byteLength.toString(),
+        'Content-Length': audioBuffer.byteLength.toString(),
         'Accept-Ranges': 'bytes',
         ...corsHeaders()
       }
     });
   } catch (e) {
     console.error('TTS API error:', e);
-    return new Response(JSON.stringify({ error: 'TTS generation failed' }), {
+    return new Response(JSON.stringify({ error: 'TTS generation failed', detail: e.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders() }
     });

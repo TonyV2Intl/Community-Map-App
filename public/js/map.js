@@ -634,16 +634,17 @@ function preloadVoices() {
             if (v.length > 0) {
                 voicesReady = true;
                 window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
-                resolve();
             }
+            resolve();
         };
         window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
 
+        // 500ms 超时，不阻塞朗读
         setTimeout(() => {
             window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
             voicesReady = true;
             resolve();
-        }, 1500);
+        }, 500);
     });
 }
 
@@ -668,14 +669,15 @@ async function toggleSpeak() {
     }
 
     const text = (currentLandmark.name || '') + '。' + (currentLandmark.description || '暂无介绍');
+    const nativeAvailable = !!window.speechSynthesis;
 
     if (engine === 'browser') {
+        if (!nativeAvailable) {
+            showToast('当前浏览器不支持语音朗读');
+            return;
+        }
         try {
             await preloadVoices();
-            if (!hasChineseVoice()) {
-                showToast('当前浏览器未安装中文语音包');
-                return;
-            }
             await speakNative(text);
         } catch (e) {
             console.error('浏览器 TTS 失败:', e);
@@ -689,37 +691,43 @@ async function toggleSpeak() {
             await speakServer(text);
         } catch (e) {
             console.error('服务器 TTS 失败:', e);
-            showToast('服务器朗读暂不可用');
+            // 本地开发环境 AI 不可用时，降级回浏览器
+            if (nativeAvailable) {
+                showToast('服务器不可用，切换浏览器朗读');
+                try { await speakNative(text); }
+                catch (e2) { showToast('朗读失败'); }
+            } else {
+                showToast('服务器朗读暂不可用');
+            }
         }
         return;
     }
 
-    // auto: try native first, fallback to server, then back to native
-    const nativeAvailable = !!window.speechSynthesis;
-    let nativeWorks = false;
-
+    // auto: 优先浏览器 TTS，失败降级服务器；服务器再失败，回退浏览器兜底
     if (nativeAvailable) {
         try {
             await preloadVoices();
-            if (hasChineseVoice()) {
-                await speakNative(text);
-                nativeWorks = true;
-            }
+            await speakNative(text);
+            return;
         } catch (e) {
-            console.warn('Native TTS failed:', e.message);
+            console.warn('浏览器 TTS 失败，尝试服务端:', e.message);
         }
     }
 
-    if (!nativeWorks) {
-        try {
-            await speakServer(text);
-        } catch (e) {
-            // 服务端 503 通常是本地未绑定 AI，降级回浏览器
-            if (nativeAvailable && !hasChineseVoice()) {
-                showToast('请在本地配置浏览器语音包或开启 Cloudflare AI');
-            } else {
+    try {
+        await speakServer(text);
+    } catch (e) {
+        console.error('服务端 TTS 也失败:', e);
+        // 最后兜底：强制尝试浏览器（即使之前失败过）
+        if (nativeAvailable) {
+            try {
+                showToast('使用浏览器兜底朗读');
+                await speakNative(text);
+            } catch (e2) {
                 showToast('语音朗读暂不可用');
             }
+        } else {
+            showToast('语音朗读暂不可用');
         }
     }
 }
