@@ -4,6 +4,36 @@ export const DEFAULT_REGION = '上海';
 export const DEFAULT_BOUNDARY_BUFFER = 0.1;
 export const DEFAULT_TITLE = '瑞金二路街道便民地图';
 export const DEFAULT_TTS_ENGINE = 'auto';
+export const DEFAULT_TTS_VOICE = '';
+
+export const TTS_VOICES = [
+  { value: '', label: '自动选择（按语言匹配）' },
+  // 中文
+  { value: 'zh-CN-XiaoxiaoNeural', label: '晓晓 (女声 · 温暖活泼)' },
+  { value: 'zh-CN-XiaoyiNeural', label: '晓伊 (女声 · 温暖亲切)' },
+  { value: 'zh-CN-XiaohanNeural', label: '晓涵 (女声 · 自然流畅)' },
+  { value: 'zh-CN-XiaomengNeural', label: '晓梦 (女声 · 甜美活力)' },
+  { value: 'zh-CN-XiaochenNeural', label: '晓辰 (女声 · 温和从容)' },
+  { value: 'zh-CN-XiaoshuangNeural', label: '晓双 (女声 · 温柔)' },
+  { value: 'zh-CN-XiaoxuanNeural', label: '晓萱 (女声 · 知性)' },
+  { value: 'zh-CN-XiaomoNeural', label: '晓墨 (女声 · 优雅)' },
+  { value: 'zh-CN-XiaozhenNeural', label: '晓甄 (女声 · 自信)' },
+  { value: 'zh-CN-YunxiNeural', label: '云希 (男声 · 稳重)' },
+  { value: 'zh-CN-YunyangNeural', label: '云扬 (男声 · 专业)' },
+  { value: 'zh-CN-XiaoruiNeural', label: '晓睿 (男声 · 儒雅)' },
+  { value: 'zh-CN-YunfengNeural', label: '云枫 (男声 · 成熟)' },
+  { value: 'zh-CN-YunjianNeural', label: '云健 (男声 · 阳光)' },
+  { value: 'zh-CN-YunxiaNeural', label: '云夏 (男声 · 青春)' },
+  // 英文
+  { value: 'en-US-JennyNeural', label: 'Jenny (英文 · 女声)' },
+  { value: 'en-US-GuyNeural', label: 'Guy (英文 · 男声)' },
+  // 日文
+  { value: 'ja-JP-NanamiNeural', label: 'Nanami (日文 · 女声)' },
+  { value: 'ja-JP-KeitaNeural', label: 'Keita (日文 · 男声)' },
+  // 韩文
+  { value: 'ko-KR-SunHiNeural', label: 'SunHi (韩文 · 女声)' },
+  { value: 'ko-KR-InJoonNeural', label: 'InJoon (韩文 · 男声)' }
+];
 
 let defaultConfigCache = null;
 

@@ -1,23 +1,24 @@
 import { corsHeaders } from './_shared';
 
-const MAX_TEXT_LENGTH = 500;
-
-const TTS_MODELS = [
-  '@cf/myshell-ai/melotts',
-  '@cf/meta/melotts'
-];
+const MAX_TEXT_LENGTH = 5000;
 
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  if (!env.AI || typeof env.AI.run !== 'function') {
-    return jsonError('AI 绑定未配置，请在 Cloudflare Pages 设置中添加 Workers AI 绑定', 503);
+  let edgeTtsUrl = (env.EDGE_TTS_URL || '').trim().replace(/\/$/, '');
+  if (!edgeTtsUrl) {
+    return jsonError('Edge TTS 服务未配置，请在 Cloudflare Pages 环境变量中设置 EDGE_TTS_URL', 503);
+  }
+  if (!/^https?:\/\//.test(edgeTtsUrl)) {
+    edgeTtsUrl = 'https://' + edgeTtsUrl;
   }
 
   let text = '';
+  let requestedVoice = '';
   try {
     const body = await request.json();
     text = (body.text || '').trim();
+    requestedVoice = (body.voice || '').trim();
   } catch (e) {
     return jsonError('请求体必须是合法的 JSON 格式', 400);
   }
@@ -30,41 +31,50 @@ export async function onRequestPost(context) {
     ? text.substring(0, MAX_TEXT_LENGTH)
     : text;
 
-  let lastError = null;
-  let result = null;
+  const lang = detectLang(truncated);
+  // 优先使用用户选定的音色，否则按语言自动匹配
+  const voice = requestedVoice || selectVoice(lang);
 
-  for (const model of TTS_MODELS) {
-    try {
-      result = await env.AI.run(model, {
-        prompt: truncated,
-        lang: 'zh'
-      });
-      if (result) {
-        console.log('[TTS] 模型调用成功:', model);
-        break;
-      }
-    } catch (e) {
-      console.warn('[TTS] 模型', model, '失败:', e.message);
-      lastError = e;
-      result = null;
-    }
-  }
+  const payload = {
+    model: 'tts-1',
+    input: truncated,
+    voice,
+    response_format: 'mp3',
+    speed: 1.0,
+    pitch: 1.0,
+    style: 'general'
+  };
 
-  if (!result) {
-    return jsonError(
-      '所有 TTS 模型均调用失败: ' + (lastError ? lastError.message : '未知错误'),
-      502,
-      { models: TTS_MODELS.map(m => ({ model: m })) }
-    );
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+  if (env.EDGE_TTS_KEY) {
+    headers['Authorization'] = 'Bearer ' + env.EDGE_TTS_KEY;
   }
 
   try {
-    const audioBuffer = extractAudioBuffer(result);
+    const response = await fetch(edgeTtsUrl + '/v1/audio/speech', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
 
-    if (!audioBuffer || audioBuffer.byteLength === 0) {
-      const info = inspectResult(result);
-      console.warn('[TTS] 模型返回为空或无法识别格式:', info);
-      return jsonError('TTS 返回内容为空或无法解析', 502, { resultInfo: info });
+    if (!response.ok) {
+      const body = await response.text();
+      let detail = '';
+      try {
+        const err = JSON.parse(body);
+        detail = err.error?.message || err.message || body;
+      } catch (_) {
+        detail = body;
+      }
+      console.error('[Edge TTS] 请求失败:', response.status, detail);
+      return jsonError('Edge TTS 服务错误 (HTTP ' + response.status + '): ' + detail, 502);
+    }
+
+    const audioBuffer = await response.arrayBuffer();
+    if (audioBuffer.byteLength === 0) {
+      return jsonError('Edge TTS 返回空音频', 502);
     }
 
     return new Response(audioBuffer, {
@@ -76,70 +86,26 @@ export async function onRequestPost(context) {
       }
     });
   } catch (e) {
-    console.error('[TTS] 音频数据解析失败:', e);
-    return jsonError('TTS 音频数据解析失败: ' + e.message, 502);
+    console.error('[Edge TTS] 网络异常:', e);
+    return jsonError('Edge TTS 服务不可达: ' + e.message, 502);
   }
 }
 
-function extractAudioBuffer(result) {
-  if (!result) return null;
-
-  if (result instanceof Response) {
-    return result.arrayBuffer();
-  }
-
-  if (result instanceof ArrayBuffer) {
-    return result;
-  }
-
-  if (ArrayBuffer.isView(result) && result.buffer) {
-    return result.buffer;
-  }
-
-  if (typeof result === 'object') {
-    // 常见的 base64 封装格式
-    if (typeof result.audio === 'string') {
-      return base64ToBuffer(result.audio);
-    }
-    if (typeof result.data === 'string') {
-      return base64ToBuffer(result.data);
-    }
-    // 嵌套结构
-    if (result.audio && typeof result.audio === 'object' && typeof result.audio.data === 'string') {
-      return base64ToBuffer(result.audio.data);
-    }
-    if (result.data && typeof result.data === 'object' && typeof result.data.audio === 'string') {
-      return base64ToBuffer(result.data.audio);
-    }
-  }
-
-  // 兜底：如果 result 本身就是字符串（base64）
-  if (typeof result === 'string') {
-    return base64ToBuffer(result);
-  }
-
-  throw new Error('无法识别的 AI 返回格式');
+function detectLang(text) {
+  if (/[\u4e00-\u9fff]/.test(text)) return 'zh';
+  if (/[\u3040-\u30ff]/.test(text)) return 'ja';
+  if (/[\uac00-\ud7af]/.test(text)) return 'ko';
+  return 'en';
 }
 
-function inspectResult(result) {
-  if (!result) return 'null';
-  if (result instanceof Response) return 'Response';
-  if (result instanceof ArrayBuffer) return `ArrayBuffer(${result.byteLength})`;
-  if (ArrayBuffer.isView(result)) return `${result.constructor.name}(${result.length})`;
-  if (typeof result === 'object') {
-    const keys = Object.keys(result);
-    return `object[${keys.join(',')}]`;
-  }
-  return typeof result;
-}
-
-function base64ToBuffer(b64) {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
+function selectVoice(lang) {
+  const voices = {
+    zh: 'zh-CN-XiaoxiaoNeural',
+    en: 'en-US-JennyNeural',
+    ja: 'ja-JP-NanamiNeural',
+    ko: 'ko-KR-SunHiNeural'
+  };
+  return voices[lang] || voices.zh;
 }
 
 function jsonError(message, status, extra) {

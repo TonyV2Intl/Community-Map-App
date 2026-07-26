@@ -506,6 +506,7 @@ function openConfigModal() {
             document.getElementById('config-region').value = config.region || '';
             document.getElementById('config-boundary-buffer').value = config.boundaryBuffer !== undefined ? Math.round(config.boundaryBuffer * 100) : 10;
             document.getElementById('config-tts-engine').value = config.ttsEngine || 'auto';
+            document.getElementById('config-tts-voice').value = config.ttsVoice !== undefined ? config.ttsVoice : '';
         })
         .catch(e => {
             console.warn('加载配置失败', e);
@@ -521,6 +522,7 @@ async function saveConfig() {
     const region = document.getElementById('config-region').value.trim();
     const boundaryBuffer = parseFloat(document.getElementById('config-boundary-buffer').value) / 100 || 0.1;
     const ttsEngine = document.getElementById('config-tts-engine').value;
+    const ttsVoice = document.getElementById('config-tts-voice').value;
     
     if (!region) {
         showToast('请填写城市区域');
@@ -533,7 +535,7 @@ async function saveConfig() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ title, region, boundaryBuffer, ttsEngine })
+            body: JSON.stringify({ title, region, boundaryBuffer, ttsEngine, ttsVoice })
         });
         
         const data = await res.json();

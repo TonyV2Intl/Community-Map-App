@@ -614,10 +614,46 @@
                         <select id="config-tts-engine" style="padding: 10px 12px; border: 1px solid var(--cmap-border); border-radius: var(--cmap-radius-md); font-size: 14px; background: white; color: var(--cmap-foreground);">
                             <option value="auto">自动选择（推荐）</option>
                             <option value="browser">浏览器自带 (Web Speech)</option>
-                            <option value="server">Cloudflare AI 服务器</option>
+                            <option value="server">Edge TTS 服务器</option>
                             <option value="disabled">禁用朗读</option>
                         </select>
-                        <span class="config-desc">选择地标详情页"朗读介绍"使用的语音引擎。浏览器引擎即时响应但依赖本地语音包；服务器引擎全平台兼容但需 Cloudflare Workers AI 绑定</span>
+                        <span class="config-desc">选择地标详情页"朗读介绍"使用的语音引擎</span>
+                    </div>
+                    <div class="config-item">
+                        <label>语音音色</label>
+                        <select id="config-tts-voice" style="padding: 10px 12px; border: 1px solid var(--cmap-border); border-radius: var(--cmap-radius-md); font-size: 14px; background: white; color: var(--cmap-foreground);">
+                            <option value="">自动选择（按语言匹配）</option>
+                            <optgroup label="中文（普通话）">
+                                <option value="zh-CN-XiaoxiaoNeural">晓晓 (女声 · 温暖活泼)</option>
+                                <option value="zh-CN-XiaoyiNeural">晓伊 (女声 · 温暖亲切)</option>
+                                <option value="zh-CN-XiaohanNeural">晓涵 (女声 · 自然流畅)</option>
+                                <option value="zh-CN-XiaomengNeural">晓梦 (女声 · 甜美活力)</option>
+                                <option value="zh-CN-XiaochenNeural">晓辰 (女声 · 温和从容)</option>
+                                <option value="zh-CN-XiaoshuangNeural">晓双 (女声 · 温柔)</option>
+                                <option value="zh-CN-XiaoxuanNeural">晓萱 (女声 · 知性)</option>
+                                <option value="zh-CN-XiaomoNeural">晓墨 (女声 · 优雅)</option>
+                                <option value="zh-CN-XiaozhenNeural">晓甄 (女声 · 自信)</option>
+                                <option value="zh-CN-YunxiNeural">云希 (男声 · 稳重)</option>
+                                <option value="zh-CN-YunyangNeural">云扬 (男声 · 专业)</option>
+                                <option value="zh-CN-XiaoruiNeural">晓睿 (男声 · 儒雅)</option>
+                                <option value="zh-CN-YunfengNeural">云枫 (男声 · 成熟)</option>
+                                <option value="zh-CN-YunjianNeural">云健 (男声 · 阳光)</option>
+                                <option value="zh-CN-YunxiaNeural">云夏 (男声 · 青春)</option>
+                            </optgroup>
+                            <optgroup label="English">
+                                <option value="en-US-JennyNeural">Jenny (Female)</option>
+                                <option value="en-US-GuyNeural">Guy (Male)</option>
+                            </optgroup>
+                            <optgroup label="日本語">
+                                <option value="ja-JP-NanamiNeural">Nanami (Female)</option>
+                                <option value="ja-JP-KeitaNeural">Keita (Male)</option>
+                            </optgroup>
+                            <optgroup label="한국어">
+                                <option value="ko-KR-SunHiNeural">SunHi (Female)</option>
+                                <option value="ko-KR-InJoonNeural">InJoon (Male)</option>
+                            </optgroup>
+                        </select>
+                        <span class="config-desc">Edge TTS 服务器使用的语音音色。选择"自动选择"将根据文本语言自动匹配最佳音色</span>
                     </div>
 
 

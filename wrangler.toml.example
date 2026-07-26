@@ -8,9 +8,8 @@ pages_build_output_dir = "public"
 binding = "MAPAPP"
 id = "<your-kv-namespace-id-here>"
 
-[[ai]]
-binding = "AI"
-
 [vars]
 ADMIN_PASSWORD=<your-password-here>
 TIANDITU_KEY=<your-tianditu-key-here>
+EDGE_TTS_URL=<your-edge-tts-worker-url>
+EDGE_TTS_KEY=<your-edge-tts-api-key>

@@ -2,7 +2,8 @@ let landmarks = [];
 let currentLandmark = null;
 let mapConfig = {
     region: '上海',
-    ttsEngine: 'auto'
+    ttsEngine: 'auto',
+    ttsVoice: ''
 };
 
 function escapeHtml(text) {
@@ -478,7 +479,7 @@ function buildBaiduNavUrl(originLng, originLat, destination, destLng, destLat) {
     var params = [];
     params.push('destination=' + destination);
     params.push('mode=walking');
-    params.push('destination_region=' + encodeURIComponent(mapConfig.region));
+    params.push('region=' + encodeURIComponent(mapConfig.region));
     params.push('output=html');
     params.push('src=' + encodeURIComponent(window.location.hostname));
 
@@ -670,6 +671,7 @@ async function toggleSpeak() {
 
     const text = (currentLandmark.name || '') + '。' + (currentLandmark.description || '暂无介绍');
     const nativeAvailable = !!window.speechSynthesis;
+    const voice = mapConfig.ttsVoice || '';
 
     if (engine === 'browser') {
         if (!nativeAvailable) {
@@ -688,10 +690,9 @@ async function toggleSpeak() {
 
     if (engine === 'server') {
         try {
-            await speakServer(text);
+            await speakServer(text, voice);
         } catch (e) {
             console.error('服务器 TTS 失败:', e);
-            // 本地开发环境 AI 不可用时，降级回浏览器
             if (nativeAvailable) {
                 showToast('服务器不可用，切换浏览器朗读');
                 try { await speakNative(text); }
@@ -703,33 +704,25 @@ async function toggleSpeak() {
         return;
     }
 
-    // auto: 优先浏览器 TTS，失败降级服务器；服务器再失败，回退浏览器兜底
+    // auto: 优先服务器 TTS，失败降级浏览器；浏览器也失败则显示 toast
+    try {
+        await speakServer(text, voice);
+        return;
+    } catch (e) {
+        console.warn('服务器 TTS 失败，尝试浏览器:', e.message);
+    }
+
     if (nativeAvailable) {
         try {
             await preloadVoices();
             await speakNative(text);
             return;
         } catch (e) {
-            console.warn('浏览器 TTS 失败，尝试服务端:', e.message);
+            console.error('浏览器 TTS 也失败:', e);
         }
     }
 
-    try {
-        await speakServer(text);
-    } catch (e) {
-        console.error('服务端 TTS 也失败:', e);
-        // 最后兜底：强制尝试浏览器（即使之前失败过）
-        if (nativeAvailable) {
-            try {
-                showToast('使用浏览器兜底朗读');
-                await speakNative(text);
-            } catch (e2) {
-                showToast('语音朗读暂不可用: ' + e.message);
-            }
-        } else {
-            showToast('语音朗读暂不可用: ' + e.message);
-        }
-    }
+    showToast('语音朗读暂不可用');
 }
 
 function speakNative(text) {
@@ -769,14 +762,17 @@ function speakNative(text) {
     });
 }
 
-async function speakServer(text) {
+async function speakServer(text, voice) {
     isSpeaking = true;
     updateSpeakButton(true);
+
+    const body = { text };
+    if (voice) body.voice = voice;
 
     const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify(body)
     });
 
     if (!response.ok) {
@@ -1039,6 +1035,7 @@ async function loadConfig() {
             if (config.boundaryBuffer !== undefined) BOUNDARY_BUFFER = parseFloat(config.boundaryBuffer);
             if (config.title) updatePageTitle(config.title);
             if (config.ttsEngine) mapConfig.ttsEngine = config.ttsEngine;
+            if (config.ttsVoice !== undefined) mapConfig.ttsVoice = config.ttsVoice;
             return;
         }
     } catch (e) {

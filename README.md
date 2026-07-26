@@ -334,7 +334,7 @@ pages_build_output_dir = "public"
 | 目的地名称 | `landmark.name`             | `destination=周公馆`                       | `to=周公馆` *(无坐标时)*              | `to=周公馆`                   |
 | 目的地坐标 | `landmark.lat/lng` (GCJ-02) | *不使用*                                   | `to=lng,lat,endpoint` (GCJ-02) | `tocoord=lat,lng` (GCJ-02) |
 | 起点坐标  | 浏览器定位 (WGS84)               | `origin=latlng:bd_lat,bd_lng` (转 BD-09) | *不传，地图自行获取*                    | *不传，地图自行获取*                |
-| 区域    | `mapConfig.region`          | `destination_region=上海`                 | —                              | —                          |
+| 区域    | `mapConfig.region`          | `region=上海`                 | —                              | —                          |
 | 出行方式  | 硬编码                         | `mode=walking`                          | `mode=walk`                    | `type=walk`                |
 | 输出格式  | 硬编码                         | `output=html`                           | —                              | —                          |
 | 来源标识  | 动态域名                        | `src=当前域名`                              | `src=当前域名`                     | —                           |
