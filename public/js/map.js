@@ -697,7 +697,7 @@ async function toggleSpeak() {
                 try { await speakNative(text); }
                 catch (e2) { showToast('朗读失败'); }
             } else {
-                showToast('服务器朗读暂不可用');
+                showToast('服务器朗读暂不可用: ' + e.message);
             }
         }
         return;
@@ -724,10 +724,10 @@ async function toggleSpeak() {
                 showToast('使用浏览器兜底朗读');
                 await speakNative(text);
             } catch (e2) {
-                showToast('语音朗读暂不可用');
+                showToast('语音朗读暂不可用: ' + e.message);
             }
         } else {
-            showToast('语音朗读暂不可用');
+            showToast('语音朗读暂不可用: ' + e.message);
         }
     }
 }
@@ -780,7 +780,15 @@ async function speakServer(text) {
     });
 
     if (!response.ok) {
-        throw new Error('Server TTS failed: ' + response.status);
+        let detail = '';
+        try {
+            const err = await response.json();
+            if (err && err.error) detail = err.error;
+        } catch (_) {
+            // 忽略 JSON 解析错误
+        }
+        const msg = detail || '服务器错误 (HTTP ' + response.status + ')';
+        throw new Error(msg);
     }
 
     const blob = await response.blob();
