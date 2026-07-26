@@ -708,9 +708,15 @@ async function toggleSpeak() {
     // 关键：在用户手势同步上下文内创建并解锁 Audio 元素
     // 这样即使后续 await fetch() 脱离手势链，play() 仍能在微信浏览器中工作
     const audio = new Audio(SILENT_WAV);
+    audio.setAttribute('playsinline', '');
+    audio.setAttribute('webkit-playsinline', '');
     currentAudio = audio;
+    // 预热：播放静音 WAV 以激活音频通道，不立即 pause 以确保 X5 内核解锁
     try {
-        audio.play().then(() => audio.pause());
+        const playPromise = audio.play();
+        if (playPromise && playPromise.catch) {
+            playPromise.catch(() => {});
+        }
     } catch (_) {}
 
     // 微信环境 + browser 引擎：已降级到服务器 TTS
@@ -834,6 +840,8 @@ async function speakServer(text, voice, audio, isWeChat) {
 
         currentReject = reject;
         audio.currentTime = 0;
+        // 重新加载以确保 X5 内核正确处理 src 变更
+        audio.load();
         audio.play().catch(reject);
     });
 }
