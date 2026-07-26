@@ -124,6 +124,36 @@
   "config": {
     "region": "上海",
     "boundaryBuffer": 0.1,
-    "title": "瑞金二路街道便民地图"
+    "title": "瑞金二路街道便民地图",
+    "ttsEngine": "auto",
+    "ttsVoice": "",
+    "quickIcons": [
+      "fa-location-dot",
+      "fa-hospital",
+      "fa-film",
+      "fa-hotel",
+      "fa-landmark",
+      "fa-tree",
+      "fa-utensils",
+      "fa-music",
+      "fa-book",
+      "fa-shop",
+      "fa-school",
+      "fa-building",
+      "fa-mosque",
+      "fa-church",
+      "fa-museum",
+      "fa-monument"
+    ],
+    "quickColors": [
+      "#4285f4",
+      "#ea4335",
+      "#34a853",
+      "#fbbc05",
+      "#8e44ad",
+      "#0e1115",
+      "#f538a0",
+      "#16a085"
+    ]
   }
 }

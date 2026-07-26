@@ -155,16 +155,18 @@ body {
   background: #ffffff;
   border-bottom: 1px solid var(--cmap-border);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 0 16px;
-  height: 48px;
+  padding: 8px 16px;
+  min-height: 48px;
+  gap: 8px;
 }
 
 .admin-header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .admin-header-left .back-btn {
@@ -193,15 +195,19 @@ body {
 }
 
 .add-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  padding: 6px 12px;
+  border-radius: var(--cmap-radius-md);
   background: var(--cmap-primary);
+  color: white;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
   transition: background 0.15s;
   flex-shrink: 0;
 }
@@ -382,24 +388,38 @@ body {
 }
 
 .icon-opt {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
+  width: 48px;
+  min-height: 52px;
   border-radius: 6px;
-  border: 2px solid var(--cmap-border);
+  border: 1px solid var(--cmap-border);
   background: white;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   cursor: pointer;
   font-size: 16px;
   color: var(--cmap-foreground);
-  padding: 0;
+  padding: 4px 2px;
   transition: border-color 0.15s;
+}
+
+.icon-opt .icon-label {
+  font-size: 10px;
+  line-height: 1.1;
+  color: var(--cmap-muted-foreground);
+  max-width: 100%;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .icon-opt.active {
   border-color: var(--cmap-primary);
+}
+
+.icon-opt.active .icon-label {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .clr-opt {

@@ -4,6 +4,24 @@ let selectedIcon = 'fa-location-dot';
 let selectedColor = '#4285f4';
 let landmarkEnabled = true;
 
+const DEFAULT_QUICK_COLORS = [
+    '#4285f4', '#ea4335', '#34a853', '#fbbc05',
+    '#8e44ad', '#0e1115', '#f538a0', '#16a085'
+];
+
+let quickColors = [...DEFAULT_QUICK_COLORS];
+let isColorEditMode = false;
+
+const DEFAULT_QUICK_ICONS = [
+    'fa-location-dot', 'fa-hospital', 'fa-film', 'fa-hotel',
+    'fa-landmark', 'fa-tree', 'fa-utensils', 'fa-music',
+    'fa-book', 'fa-shop', 'fa-school', 'fa-building',
+    'fa-mosque', 'fa-church', 'fa-museum', 'fa-monument'
+];
+
+let quickIcons = [...DEFAULT_QUICK_ICONS];
+let isIconEditMode = false;
+
 const PICKER_MAX_SCALE = 5;
 const PICKER_ZOOM_FACTOR = 1.25;
 const PICKER_BOUNDARY_BUFFER = 0.2;
@@ -26,6 +44,9 @@ function init() {
         isNew = true;
         document.getElementById('page-title').textContent = '新增地标';
     }
+
+    loadQuickIconsFromConfig();
+    loadQuickColorsFromConfig();
 
     document.getElementById('picker-viewport').addEventListener('click', function(e) {
         const img = document.getElementById('picker-img');
@@ -121,10 +142,135 @@ function formatTimestamp(ts) {
     return `${y}-${m}-${d} ${h}:${min}:${s}`;
 }
 
-function selectIcon(btn) {
-    document.querySelectorAll('.icon-opt').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedIcon = btn.getAttribute('data-icon');
+async function loadQuickIconsFromConfig() {
+    try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+            const config = await res.json();
+            if (config.quickIcons && Array.isArray(config.quickIcons) && config.quickIcons.length > 0) {
+                quickIcons = config.quickIcons;
+            }
+        }
+    } catch (e) {
+        console.warn('加载快捷图标配置失败，使用默认列表');
+    }
+    renderQuickIcons();
+}
+
+async function saveQuickIcons() {
+    try {
+        await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quickIcons })
+        });
+    } catch (e) {
+        console.error('保存快捷图标失败:', e);
+    }
+}
+
+function renderQuickIcons() {
+    const grid = document.getElementById('icon-grid');
+    if (!grid) return;
+    grid.replaceChildren();
+
+    quickIcons.forEach(icon => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'icon-opt';
+        btn.setAttribute('data-icon', icon);
+
+        const iEl = document.createElement('i');
+        const iconName = icon.replace(/^fa-/, '');
+        const isBrands = FONT_AWESOME_ICONS.some(x => x.name === iconName && x.prefix === 'brands');
+        iEl.className = (isBrands ? 'fa-brands ' : 'fa-solid ') + icon;
+        btn.appendChild(iEl);
+
+        const label = document.createElement('span');
+        label.className = 'icon-label';
+        label.textContent = iconName;
+        btn.appendChild(label);
+
+        if (icon === selectedIcon) {
+            btn.classList.add('active');
+        }
+
+        if (isIconEditMode) {
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'icon-remove';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = '从快捷栏移除';
+            removeBtn.onclick = function(e) {
+                e.stopPropagation();
+                removeQuickIcon(icon);
+            };
+            btn.appendChild(removeBtn);
+        } else {
+            btn.onclick = function() {
+                selectIcon(icon);
+            };
+        }
+
+        grid.appendChild(btn);
+    });
+
+    // "更多"按钮
+    const moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'icon-opt more-icon-btn';
+    moreBtn.onclick = function() {
+        openIconSearchModal();
+    };
+    const moreI = document.createElement('i');
+    moreI.className = 'fa-solid fa-ellipsis';
+    moreBtn.appendChild(moreI);
+    const moreLabel = document.createElement('span');
+    moreLabel.className = 'icon-label';
+    moreLabel.textContent = 'more';
+    moreBtn.appendChild(moreLabel);
+    grid.appendChild(moreBtn);
+
+    updateIconSearchSelection();
+}
+
+function toggleIconEditMode() {
+    isIconEditMode = !isIconEditMode;
+    const btn = document.getElementById('icon-edit-toggle');
+    const label = document.getElementById('icon-edit-label');
+    const icon = btn.querySelector('i');
+    if (isIconEditMode) {
+        btn.classList.add('active');
+        label.textContent = '完成';
+        icon.className = 'fa-solid fa-check';
+        document.body.classList.add('edit-mode');
+    } else {
+        btn.classList.remove('active');
+        label.textContent = '编辑';
+        icon.className = 'fa-solid fa-pen';
+        document.body.classList.remove('edit-mode');
+        saveQuickIcons();
+    }
+    renderQuickIcons();
+}
+
+function removeQuickIcon(icon) {
+    quickIcons = quickIcons.filter(i => i !== icon);
+    renderQuickIcons();
+    saveQuickIcons();
+}
+
+function addQuickIcon(icon) {
+    if (quickIcons.includes(icon)) return;
+    quickIcons.push(icon);
+    renderQuickIcons();
+    saveQuickIcons();
+    renderIconSearchGrid();
+}
+
+function selectIcon(icon) {
+    selectedIcon = icon;
+    updateIconSelection();
     updateIconPreview();
 }
 
@@ -156,17 +302,25 @@ function updateIconSearchSelection() {
 }
 
 function selectColor(btn) {
-    document.querySelectorAll('.clr-opt').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedColor = btn.getAttribute('data-color');
-    document.getElementById('custom-color').value = selectedColor;
-    updateRGBFromColor(selectedColor);
+    const color = btn.getAttribute('data-color');
+    selectedColor = color;
+    document.getElementById('custom-color').value = color;
+    renderColorRow();
+    updateRGBFromColor(color);
     updateIconPreview();
 }
 
 function selectCustomColor(color) {
-    document.querySelectorAll('.clr-opt').forEach(b => b.classList.remove('active'));
+    if (isColorEditMode) {
+        const hex = color.toLowerCase();
+        if (!quickColors.includes(hex)) {
+            quickColors.push(hex);
+            renderColorRow();
+            saveQuickColors();
+        }
+    }
     selectedColor = color;
+    renderColorRow();
     updateRGBFromColor(color);
     updateIconPreview();
 }
@@ -203,23 +357,124 @@ function updateColorFromRGB() {
     document.getElementById('custom-color').value = hex;
     document.getElementById('hex-display').textContent = hex.toUpperCase();
     
-    document.querySelectorAll('.clr-opt').forEach(b => b.classList.remove('active'));
+    renderColorRow();
     updateIconPreview();
 }
 
 function updateColorSelection() {
-    let found = false;
-    document.querySelectorAll('.clr-opt').forEach(btn => {
-        if (btn.getAttribute('data-color').toLowerCase() === selectedColor.toLowerCase()) {
-            btn.classList.add('active');
-            found = true;
-        } else {
-            btn.classList.remove('active');
-        }
-    });
+    renderColorRow();
     document.getElementById('custom-color').value = selectedColor;
     updateRGBFromColor(selectedColor);
     updateIconPreview();
+}
+
+async function loadQuickColorsFromConfig() {
+    try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+            const config = await res.json();
+            if (config.quickColors && Array.isArray(config.quickColors) && config.quickColors.length > 0) {
+                quickColors = config.quickColors;
+            }
+        }
+    } catch (e) {
+        console.warn('加载快捷颜色配置失败，使用默认列表');
+    }
+    renderColorRow();
+}
+
+async function saveQuickColors() {
+    try {
+        await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quickColors })
+        });
+    } catch (e) {
+        console.error('保存快捷颜色失败:', e);
+    }
+}
+
+function renderColorRow() {
+    const row = document.getElementById('color-row');
+    if (!row) return;
+    row.replaceChildren();
+
+    quickColors.forEach(color => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'clr-opt';
+        btn.setAttribute('data-color', color);
+        btn.style.background = color;
+
+        if (color.toLowerCase() === selectedColor.toLowerCase()) {
+            btn.classList.add('active');
+        }
+
+        if (isColorEditMode) {
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'clr-remove';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = '移除颜色';
+            removeBtn.onclick = function(e) {
+                e.stopPropagation();
+                removeQuickColor(color);
+            };
+            btn.appendChild(removeBtn);
+        } else {
+            btn.onclick = function() {
+                selectColor(btn);
+            };
+        }
+
+        row.appendChild(btn);
+    });
+
+    if (isColorEditMode) {
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'clr-add-btn';
+        addBtn.title = '添加颜色';
+        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i>';
+        addBtn.onclick = function() {
+            const picker = document.getElementById('custom-color');
+            picker.click();
+        };
+        row.appendChild(addBtn);
+    }
+}
+
+function toggleColorEditMode() {
+    isColorEditMode = !isColorEditMode;
+    const btn = document.getElementById('color-edit-toggle');
+    const label = document.getElementById('color-edit-label');
+    const icon = btn.querySelector('i');
+    if (isColorEditMode) {
+        btn.classList.add('active');
+        label.textContent = '完成';
+        icon.className = 'fa-solid fa-check';
+        document.body.classList.add('color-edit-mode');
+    } else {
+        btn.classList.remove('active');
+        label.textContent = '编辑';
+        icon.className = 'fa-solid fa-pen';
+        document.body.classList.remove('color-edit-mode');
+        saveQuickColors();
+    }
+    renderColorRow();
+}
+
+function removeQuickColor(color) {
+    quickColors = quickColors.filter(c => c.toLowerCase() !== color.toLowerCase());
+    if (selectedColor.toLowerCase() === color.toLowerCase()) {
+        selectedColor = quickColors[0] || '#4285f4';
+        document.getElementById('custom-color').value = selectedColor;
+        updateRGBFromColor(selectedColor);
+        updateIconPreview();
+    }
+    renderColorRow();
+    saveQuickColors();
 }
 
 function updateIconPreview() {
@@ -598,6 +853,7 @@ function openIconSearchModal() {
 function closeIconSearchModal() {
     document.getElementById('icon-search-modal').classList.remove('show');
     document.body.style.overflow = '';
+    renderQuickIcons();
 }
 
 function filterIcons() {
@@ -628,17 +884,47 @@ function renderIconGrid(icons) {
         btn.appendChild(label);
         btn.title = icon.name;
         btn.setAttribute('data-icon-name', icon.name);
-        if (`fa-${icon.name}` === selectedIcon) {
+
+        const fullIcon = `fa-${icon.name}`;
+        if (fullIcon === selectedIcon) {
             btn.classList.add('selected');
         }
-        btn.onclick = function() {
-            selectedIcon = `fa-${icon.name}`;
+        const inQuick = quickIcons.includes(fullIcon);
+        if (inQuick) {
+            btn.classList.add('added');
+        }
+
+        btn.onclick = function(e) {
+            if (e.target.classList.contains('quick-add-btn')) return;
+            selectedIcon = fullIcon;
             updateIconSelection();
             updateIconPreview();
-            closeIconSearchModal();
         };
+
+        if (!inQuick) {
+            const addBtn = document.createElement('span');
+            addBtn.className = 'quick-add-btn';
+            addBtn.innerHTML = '+';
+            addBtn.title = '添加到快捷栏';
+            addBtn.onclick = function(e) {
+                e.stopPropagation();
+                addQuickIcon(fullIcon);
+            };
+            btn.appendChild(addBtn);
+        }
+
         grid.appendChild(btn);
     });
+}
+
+function renderIconSearchGrid() {
+    const modal = document.getElementById('icon-search-modal');
+    if (!modal || !modal.classList.contains('show')) return;
+    const query = document.getElementById('icon-search-input').value.toLowerCase().trim();
+    const filtered = query
+        ? FONT_AWESOME_ICONS.filter(icon => icon.name.toLowerCase().includes(query))
+        : FONT_AWESOME_ICONS;
+    renderIconGrid(filtered);
 }
 
 document.getElementById('icon-search-modal').addEventListener('click', function(e) {

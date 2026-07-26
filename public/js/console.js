@@ -660,7 +660,7 @@ async function loadMapInfo() {
         const data = await res.json();
 
         if (data.hasCustom && data.meta) {
-            // 有自定义底图
+            // 有自定义底图（在 KV 中）
             statusEl.replaceChildren();
             const customTag = document.createElement('span');
             customTag.className = 'map-status-tag custom';
@@ -674,6 +674,10 @@ async function loadMapInfo() {
                 ? new Date(data.meta.updatedAt).toLocaleString('zh-CN')
                 : '-';
             resetBtn.disabled = false;
+            const resetLabel = document.getElementById('map-reset-label');
+            resetLabel.textContent = '恢复默认底图';
+            const resetIcon = resetBtn.querySelector('i');
+            resetIcon.className = 'fa-solid fa-rotate-left';
 
             // 预览图片（加时间戳避免缓存）
             preview.replaceChildren();
@@ -681,24 +685,53 @@ async function loadMapInfo() {
             img.src = '/api/map-image?t=' + Date.now();
             img.alt = '当前底图';
             preview.appendChild(img);
+        } else if (!data.inKV) {
+            // KV 为空，显示默认图预览 + 写入按钮
+            statusEl.replaceChildren();
+            const emptyTag = document.createElement('span');
+            emptyTag.className = 'map-status-tag default';
+            emptyTag.textContent = '未设置';
+            statusEl.appendChild(emptyTag);
+
+            typeEl.textContent = '-';
+            sizeEl.textContent = '-';
+            nameEl.textContent = '-';
+            updatedEl.textContent = '-';
+            resetBtn.disabled = false;
+            const resetLabel = document.getElementById('map-reset-label');
+            const resetIcon = resetBtn.querySelector('i');
+            resetLabel.textContent = '写入默认底图';
+            resetIcon.className = 'fa-solid fa-download';
+
+            preview.replaceChildren();
+            const placeholderDiv = document.createElement('div');
+            placeholderDiv.className = 'map-placeholder';
+            placeholderDiv.textContent = '暂无底图';
+            preview.appendChild(placeholderDiv);
         } else {
-            // 使用默认底图
+            // 默认底图已在 KV 中
             statusEl.replaceChildren();
             const defaultTag = document.createElement('span');
             defaultTag.className = 'map-status-tag default';
             defaultTag.textContent = '默认';
             statusEl.appendChild(defaultTag);
 
-            typeEl.textContent = 'image/webp';
-            sizeEl.textContent = '-';
-            nameEl.textContent = 'default-map.webp';
-            updatedEl.textContent = '-';
-            resetBtn.disabled = true;
+            typeEl.textContent = data.meta?.type || 'image/webp';
+            sizeEl.textContent = data.meta ? formatFileSize(data.meta.size) : '-';
+            nameEl.textContent = data.meta?.name || 'default-map.webp';
+            updatedEl.textContent = data.meta?.updatedAt
+                ? new Date(data.meta.updatedAt).toLocaleString('zh-CN')
+                : '-';
+            resetBtn.disabled = false;
+            const resetLabel = document.getElementById('map-reset-label');
+            resetLabel.textContent = '恢复默认底图';
+            const resetIcon = resetBtn.querySelector('i');
+            resetIcon.className = 'fa-solid fa-rotate-left';
 
             preview.replaceChildren();
             const img = document.createElement('img');
-            img.src = '/assets/default-map.webp';
-            img.alt = '默认底图';
+            img.src = '/api/map-image?t=' + Date.now();
+            img.alt = '当前底图';
             preview.appendChild(img);
         }
     } catch (e) {
@@ -758,26 +791,47 @@ async function handleMapUpload(input) {
 }
 
 async function handleMapReset() {
-    if (!confirm('确定要恢复默认底图吗？当前自定义底图将被删除。')) {
-        return;
-    }
+    const resetLabel = document.getElementById('map-reset-label');
+    const isSetDefault = resetLabel.textContent === '写入默认底图';
 
-    try {
-        const res = await fetch('/api/map-image', {
-            method: 'DELETE'
-        });
-
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-            showToast('已恢复默认底图');
-            loadMapInfo();
-        } else {
-            showToast('恢复失败: ' + (data.error || '未知错误'));
+    if (isSetDefault) {
+        if (!confirm('确定将默认底图写入 KV 吗？')) {
+            return;
         }
-    } catch (e) {
-        console.error('恢复默认底图失败:', e);
-        showToast('恢复失败，请检查网络');
+        try {
+            const res = await fetch('/api/map-image?set-default', {
+                method: 'POST'
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('已写入默认底图');
+                loadMapInfo();
+            } else {
+                showToast('写入失败: ' + (data.error || '未知错误'));
+            }
+        } catch (e) {
+            console.error('写入默认底图失败:', e);
+            showToast('写入失败，请检查网络');
+        }
+    } else {
+        if (!confirm('确定要恢复默认底图吗？当前自定义底图将被替换为默认底图。')) {
+            return;
+        }
+        try {
+            const res = await fetch('/api/map-image?set-default', {
+                method: 'POST'
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('已恢复默认底图');
+                loadMapInfo();
+            } else {
+                showToast('恢复失败: ' + (data.error || '未知错误'));
+            }
+        } catch (e) {
+            console.error('恢复默认底图失败:', e);
+            showToast('恢复失败，请检查网络');
+        }
     }
 }
 

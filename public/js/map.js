@@ -418,27 +418,23 @@ function handleNavigate(platform) {
     
     var destLat = currentLandmark.lat || null;
     var destLng = currentLandmark.lng || null;
-    var destination = encodeURIComponent(currentLandmark.name);
+    var destination = currentLandmark.name;
 
-    // 百度地图：需要起点坐标；高德/腾讯：让地图自行获取
-    if (platform === 'baidu') {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    navigateWithPlatform(platform, position.coords.longitude, position.coords.latitude, destination, destLng, destLat);
-                },
-                function(error) {
-                    console.warn('获取位置失败:', error);
-                    showToast('无法获取当前位置，请手动设置起点');
-                    navigateWithPlatform(platform, null, null, destination, destLng, destLat);
-                },
-                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-            );
-        } else {
-            showToast('您的浏览器不支持地理定位');
-            navigateWithPlatform(platform, null, null, destination, destLng, destLat);
-        }
+    // 所有平台均尝试获取起点坐标：百度需 BD09，高德需 GCJ-02，腾讯使用 WGS84
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                navigateWithPlatform(platform, position.coords.longitude, position.coords.latitude, destination, destLng, destLat);
+            },
+            function(error) {
+                console.warn('获取位置失败:', error);
+                showToast('无法获取当前位置，请手动设置起点');
+                navigateWithPlatform(platform, null, null, destination, destLng, destLat);
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
     } else {
+        showToast('您的浏览器不支持地理定位');
         navigateWithPlatform(platform, null, null, destination, destLng, destLat);
     }
 }
@@ -477,7 +473,7 @@ function navigateWithPlatform(platform, originLng, originLat, destination, destL
 function buildBaiduNavUrl(originLng, originLat, destination, destLng, destLat) {
     var baseUrl = 'https://api.map.baidu.com/direction';
     var params = [];
-    params.push('destination=' + destination);
+    params.push('destination=' + encodeURIComponent(destination));
     params.push('mode=walking');
     params.push('region=' + encodeURIComponent(mapConfig.region));
     params.push('output=html');
@@ -498,7 +494,12 @@ function buildAmapNavUrl(originLng, originLat, destination, destLng, destLat) {
     if (destLng !== null && destLng !== undefined && destLat !== null && destLat !== undefined) {
         params.push('to=' + destLng + ',' + destLat + ',' + encodeURIComponent(destination));
     } else {
-        params.push('to=' + destination);
+        params.push('to=' + encodeURIComponent(destination));
+    }
+    if (originLng !== null && originLat !== null) {
+        // WGS84 → GCJ-02
+        var gcjCoord = convertCoord(originLng, originLat, gcoord.WGS84, gcoord.GCJ02);
+        params.push('from=' + gcjCoord[0] + ',' + gcjCoord[1] + ',' + encodeURIComponent('我的位置'));
     }
     params.push('mode=walk');
     params.push('src=' + encodeURIComponent(window.location.hostname));
@@ -510,7 +511,7 @@ function buildTencentNavUrl(originLng, originLat, destination, destLng, destLat)
     var baseUrl = 'https://apis.map.qq.com/uri/v1/routeplan';
     var params = [];
     params.push('type=walk');
-    params.push('to=' + destination);
+    params.push('to=' + encodeURIComponent(destination));
 
     if (destLng !== null && destLng !== undefined && destLat !== null && destLat !== undefined) {
         // GCJ-02 → WGS84，配合 coord_type=1
@@ -523,6 +524,15 @@ function buildTencentNavUrl(originLng, originLat, destination, destLng, destLat)
             params.push('tocoord=' + destLat + ',' + destLng);
         }
     }
+
+    if (originLng !== null && originLat !== null) {
+        // 腾讯 coord_type=1 接受 WGS84，直接传入
+        params.push('from=' + encodeURIComponent('我的位置'));
+        params.push('fromcoord=' + originLat + ',' + originLng);
+        if (params.indexOf('coord_type=1') === -1) {
+            params.push('coord_type=1');
+        }
+    }
     
     return baseUrl + '?' + params.join('&');
 }
@@ -532,27 +542,22 @@ function copyNavUrl(platform) {
     
     var destLat = currentLandmark.lat || null;
     var destLng = currentLandmark.lng || null;
-    var destination = encodeURIComponent(currentLandmark.name);
+    var destination = currentLandmark.name;
 
-    // 百度地图：需要起点坐标；高德/腾讯：让地图自行获取
-    if (platform === 'baidu') {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    var navUrl = getNavUrl(platform, position.coords.longitude, position.coords.latitude, destination, destLng, destLat);
-                    doCopy(navUrl);
-                },
-                function(error) {
-                    console.warn('获取位置失败:', error);
-                    var navUrl = getNavUrl(platform, null, null, destination, destLng, destLat);
-                    doCopy(navUrl);
-                },
-                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-            );
-        } else {
-            var navUrl = getNavUrl(platform, null, null, destination, destLng, destLat);
-            doCopy(navUrl);
-        }
+    // 所有平台均尝试获取起点坐标
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                var navUrl = getNavUrl(platform, position.coords.longitude, position.coords.latitude, destination, destLng, destLat);
+                doCopy(navUrl);
+            },
+            function(error) {
+                console.warn('获取位置失败:', error);
+                var navUrl = getNavUrl(platform, null, null, destination, destLng, destLat);
+                doCopy(navUrl);
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
     } else {
         var navUrl = getNavUrl(platform, null, null, destination, destLng, destLat);
         doCopy(navUrl);
@@ -616,7 +621,13 @@ function closeDetail() {
 
 let isSpeaking = false;
 let currentAudio = null;
+let currentReject = null;
 let voicesReady = false;
+
+function isWeChatBrowser() {
+    const ua = navigator.userAgent.toLowerCase();
+    return /MicroMessenger/i.test(ua);
+}
 
 function preloadVoices() {
     if (!window.speechSynthesis) return Promise.reject(new Error('no-speech'));
@@ -655,6 +666,9 @@ function hasChineseVoice() {
     return voices.some(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
 }
 
+// 极小的静音 WAV，用于在用户手势内解锁 Audio 元素
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+
 async function toggleSpeak() {
     if (isSpeaking) {
         stopSpeak();
@@ -672,8 +686,11 @@ async function toggleSpeak() {
     const text = (currentLandmark.name || '') + '。' + (currentLandmark.description || '暂无介绍');
     const nativeAvailable = !!window.speechSynthesis;
     const voice = mapConfig.ttsVoice || '';
+    const isWeChat = isWeChatBrowser();
 
-    if (engine === 'browser') {
+    // 浏览器原生 TTS：微信环境下 speechSynthesis 也被屏蔽
+    // 非微信环境且指定 browser 模式，或 auto 模式下没有可用的语音
+    if (engine === 'browser' && !isWeChat) {
         if (!nativeAvailable) {
             showToast('当前浏览器不支持语音朗读');
             return;
@@ -688,31 +705,30 @@ async function toggleSpeak() {
         return;
     }
 
-    if (engine === 'server') {
-        try {
-            await speakServer(text, voice);
-        } catch (e) {
-            console.error('服务器 TTS 失败:', e);
-            if (nativeAvailable) {
-                showToast('服务器不可用，切换浏览器朗读');
-                try { await speakNative(text); }
-                catch (e2) { showToast('朗读失败'); }
-            } else {
-                showToast('服务器朗读暂不可用: ' + e.message);
-            }
-        }
-        return;
+    // 关键：在用户手势同步上下文内创建并解锁 Audio 元素
+    // 这样即使后续 await fetch() 脱离手势链，play() 仍能在微信浏览器中工作
+    const audio = new Audio(SILENT_WAV);
+    currentAudio = audio;
+    try {
+        audio.play().then(() => audio.pause());
+    } catch (_) {}
+
+    // 微信环境 + browser 引擎：已降级到服务器 TTS
+    if (engine === 'browser' && isWeChat) {
+        console.info('微信环境跳过浏览器 TTS，改用服务器朗读');
     }
 
-    // auto: 优先服务器 TTS，失败降级浏览器；浏览器也失败则显示 toast
+    // 服务器 TTS（微信/非微信通用）
     try {
-        await speakServer(text, voice);
+        await speakServer(text, voice, audio, isWeChat);
         return;
     } catch (e) {
-        console.warn('服务器 TTS 失败，尝试浏览器:', e.message);
+        if (e && e.name === 'AbortError') return;
+        console.warn('服务器 TTS 失败:', e.message);
     }
 
-    if (nativeAvailable) {
+    // 降级：尝试浏览器 TTS（仅非微信环境，微信的 speechSynthesis 也被屏蔽）
+    if (!isWeChat && nativeAvailable) {
         try {
             await preloadVoices();
             await speakNative(text);
@@ -762,7 +778,7 @@ function speakNative(text) {
     });
 }
 
-async function speakServer(text, voice) {
+async function speakServer(text, voice, audio, isWeChat) {
     isSpeaking = true;
     updateSpeakButton(true);
 
@@ -788,24 +804,47 @@ async function speakServer(text, voice) {
     }
 
     const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    currentAudio = audio;
 
-    audio.onended = function() {
-        isSpeaking = false;
-        updateSpeakButton(false);
-        cleanupAudio();
-    };
+    // 微信浏览器兼容：使用 FileReader 转为 DataURL
+    // 某些版本微信的 blob: URL 存在识别问题
+    if (isWeChat) {
+        const dataUrl = await blobToDataURL(blob);
+        audio.src = dataUrl;
+    } else {
+        const url = URL.createObjectURL(blob);
+        audio.src = url;
+    }
 
-    audio.onerror = function() {
-        isSpeaking = false;
-        updateSpeakButton(false);
-        cleanupAudio();
-        showToast('朗读播放失败');
-    };
+    return new Promise((resolve, reject) => {
+        audio.onended = function() {
+            isSpeaking = false;
+            updateSpeakButton(false);
+            currentReject = null;
+            cleanupAudio();
+            resolve();
+        };
 
-    await audio.play();
+        audio.onerror = function() {
+            isSpeaking = false;
+            updateSpeakButton(false);
+            currentReject = null;
+            cleanupAudio();
+            reject(new Error('朗读播放失败'));
+        };
+
+        currentReject = reject;
+        audio.currentTime = 0;
+        audio.play().catch(reject);
+    });
+}
+
+function blobToDataURL(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('DataURL 转换失败'));
+        reader.readAsDataURL(blob);
+    });
 }
 
 function stopSpeak() {
@@ -813,9 +852,13 @@ function stopSpeak() {
         window.speechSynthesis.cancel();
     }
     if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
+        try { currentAudio.pause(); } catch (_) {}
+        try { currentAudio.currentTime = 0; } catch (_) {}
         cleanupAudio();
+    }
+    if (currentReject) {
+        try { currentReject(new DOMException('Aborted', 'AbortError')); } catch (_) {}
+        currentReject = null;
     }
     if (isSpeaking) {
         isSpeaking = false;
@@ -825,7 +868,9 @@ function stopSpeak() {
 
 function cleanupAudio() {
     if (currentAudio) {
-        URL.revokeObjectURL(currentAudio.src);
+        if (currentAudio.src && currentAudio.src.startsWith('blob:')) {
+            URL.revokeObjectURL(currentAudio.src);
+        }
         currentAudio = null;
     }
 }
@@ -1016,10 +1061,18 @@ function init() {
         }
         centerMap();
     }
+    function onImageError() {
+        wrapper.style.width = '800px';
+        wrapper.style.height = '600px';
+        markersContainer.style.width = '800px';
+        markersContainer.style.height = '600px';
+        centerMap();
+    }
     if (img.complete) {
         onImageReady();
     } else {
         img.addEventListener('load', onImageReady);
+        img.addEventListener('error', onImageError);
     }
     loadConfig();
     loadLandmarks();

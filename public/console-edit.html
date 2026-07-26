@@ -157,7 +157,7 @@
         .time-value {
             font-size: 13px;
             color: var(--cmap-foreground);
-            font-family: monospace;
+            font-family: var(--font-sans);
         }
         textarea.g-field {
             height: auto;
@@ -191,17 +191,19 @@
         }
         .icon-grid {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             overflow-x: auto;
-            padding-bottom: 6px;
+            padding: 6px 0 8px 0;
             -webkit-overflow-scrolling: touch;
         }
         .color-row {
             display: flex;
             gap: 8px;
             align-items: center;
-            flex-wrap: wrap;
-            margin-top: 8px;
+            overflow-x: auto;
+            overflow-y: visible;
+            padding: 6px 0 8px 8px;
+            -webkit-overflow-scrolling: touch;
         }
         .color-custom-wrapper {
             position: relative;
@@ -521,6 +523,7 @@
             max-height: 50vh;
         }
         .icon-search-grid button {
+            position: relative;
             width: 100%;
             border: 1px solid var(--cmap-border);
             border-radius: var(--cmap-radius-sm);
@@ -537,11 +540,14 @@
             transition: background 0.1s, border-color 0.1s;
         }
         .icon-search-grid button .icon-label {
+            display: block;
+            align-self: stretch;
+            min-width: 0;
             font-size: 9px;
-            max-width: 100%;
             line-height: 1.2;
             color: var(--cmap-muted-foreground);
-            word-break: break-all;
+            white-space: normal;
+            word-break: break-word;
             text-align: center;
         }
         .icon-search-grid button:hover {
@@ -553,20 +559,41 @@
             border-color: var(--cmap-primary);
             color: white;
         }
+        .icon-search-grid button.selected .icon-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
         .icon-opt {
-            width: 36px;
-            height: 36px;
+            width: 52px;
+            min-height: 52px;
             border: 1px solid var(--cmap-border);
             border-radius: var(--cmap-radius-sm);
             background: white;
             cursor: pointer;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 2px;
             font-size: 16px;
             color: var(--cmap-foreground);
             transition: background 0.1s, border-color 0.1s;
             flex-shrink: 0;
+            padding: 4px 2px;
+            position: relative;
+        }
+        .icon-opt .icon-label {
+            display: block;
+            align-self: stretch;
+            min-width: 0;
+            font-size: 10px;
+            line-height: 1.1;
+            color: var(--cmap-muted-foreground);
+            text-align: center;
+            white-space: normal;
+            word-break: break-word;
+        }
+        .icon-opt.active .icon-label {
+            color: rgba(255, 255, 255, 0.9);
         }
         .icon-opt:hover {
             background: var(--cmap-muted);
@@ -583,6 +610,97 @@
         }
         .more-icon-btn:hover {
             color: var(--cmap-primary);
+            border-color: var(--cmap-primary);
+        }
+        .icon-grid-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--cmap-muted-foreground);
+        }
+        .icon-edit-toggle {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            font-size: 12px;
+            color: var(--cmap-primary);
+            background: transparent;
+            border: 1px solid var(--cmap-primary);
+            border-radius: var(--cmap-radius-sm);
+            cursor: pointer;
+            transition: background 0.15s;
+            font-family: inherit;
+        }
+        .icon-edit-toggle:hover {
+            background: rgba(66, 133, 244, 0.08);
+        }
+        .icon-edit-toggle.active {
+            background: var(--cmap-primary);
+            color: white;
+        }
+        .icon-opt .icon-remove {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ea4335;
+            color: white;
+            border: 2px solid white;
+            font-size: 8px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            line-height: 1;
+            z-index: 2;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        body.edit-mode .icon-opt .icon-remove {
+            display: flex;
+        }
+        body.edit-mode .icon-opt {
+            cursor: pointer;
+        }
+        .icon-search-grid button.added {
+            position: relative;
+        }
+        .icon-search-grid button.added::after {
+            content: '✓';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            background: var(--cmap-primary);
+            color: white;
+            border-radius: 50%;
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .quick-add-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            background: rgba(66, 133, 244, 0.9);
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: bold;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            cursor: pointer;
+            z-index: 1;
+        }
+        .icon-search-grid button:hover .quick-add-btn {
+            display: flex;
         }
         .clr-opt {
             width: 28px;
@@ -599,6 +717,52 @@
         .clr-opt.active {
             border-color: var(--cmap-foreground);
             transform: scale(1.15);
+        }
+        .clr-opt .clr-remove {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ea4335;
+            color: white;
+            border: none;
+            font-size: 9px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            line-height: 1;
+            z-index: 1;
+        }
+        body.color-edit-mode .clr-opt {
+            position: relative;
+        }
+        body.color-edit-mode .clr-opt .clr-remove {
+            display: flex;
+        }
+        .clr-add-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px dashed var(--cmap-primary);
+            background: transparent;
+            color: var(--cmap-primary);
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            transition: transform 0.15s, background 0.15s;
+        }
+        .clr-add-btn:hover {
+            transform: scale(1.15);
+            background: rgba(66, 133, 244, 0.1);
+        }
+        body.color-edit-mode .clr-add-btn {
+            display: flex;
         }
         .rgb-input-group {
             display: flex;
@@ -699,6 +863,55 @@
             </div>
 
             <div class="form-card g-section">
+                <label class="g-label" style="margin-bottom: 8px;">图标样式</label>
+
+                <div class="icon-preview-wrapper">
+                    <div class="icon-preview-circle" id="icon-preview">
+                        <i class="fa-solid fa-location-dot" id="icon-preview-i"></i>
+                    </div>
+                    <span class="icon-preview-label">当前图标预览</span>
+                </div>
+
+                <div class="icon-grid-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <span class="icon-grid-title">图标</span>
+                    <button type="button" class="icon-edit-toggle" id="icon-edit-toggle" onclick="toggleIconEditMode()">
+                        <i class="fa-solid fa-pen"></i>
+                        <span id="icon-edit-label">编辑</span>
+                    </button>
+                </div>
+                <div class="icon-grid" id="icon-grid"></div>
+
+                <div style="margin-top: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <label class="g-label" style="margin-bottom: 0;">颜色</label>
+                        <button type="button" class="icon-edit-toggle" id="color-edit-toggle" onclick="toggleColorEditMode()">
+                            <i class="fa-solid fa-pen"></i>
+                            <span id="color-edit-label">编辑</span>
+                        </button>
+                    </div>
+                    <div class="color-row" id="color-row"></div>
+                    <div class="rgb-input-row" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+                        <div class="rgb-input-group">
+                            <input type="number" id="rgb-r" min="0" max="255" value="66" oninput="updateColorFromRGB()" />
+                            <span>R</span>
+                        </div>
+                        <div class="rgb-input-group">
+                            <input type="number" id="rgb-g" min="0" max="255" value="133" oninput="updateColorFromRGB()" />
+                            <span>G</span>
+                        </div>
+                        <div class="rgb-input-group">
+                            <input type="number" id="rgb-b" min="0" max="255" value="244" oninput="updateColorFromRGB()" />
+                            <span>B</span>
+                        </div>
+                        <span id="hex-display" style="font-size: 12px; color: var(--cmap-muted-foreground); font-family: var(--font-sans);">#4285F4</span>
+                        <div class="color-custom-wrapper">
+                            <input type="color" id="custom-color" value="#4285f4" title="自定义颜色" oninput="selectCustomColor(this.value)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-card g-section">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <label class="g-label">启用状态</label>
                     <label class="toggle-switch">
@@ -719,103 +932,6 @@
                     <div class="time-row">
                         <span class="time-label">修改时间</span>
                         <span class="time-value" id="time-updated">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-card g-section">
-                <label class="g-label" style="margin-bottom: 8px;">图标样式</label>
-
-                <div class="icon-preview-wrapper">
-                    <div class="icon-preview-circle" id="icon-preview">
-                        <i class="fa-solid fa-location-dot" id="icon-preview-i"></i>
-                    </div>
-                    <span class="icon-preview-label">当前图标预览</span>
-                </div>
-
-                <div class="icon-grid no-scrollbar">
-                    <button type="button" class="icon-opt active" data-icon="fa-location-dot" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-location-dot"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-hospital" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-hospital"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-film" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-film"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-hotel" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-hotel"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-landmark" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-landmark"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-tree" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-tree"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-utensils" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-utensils"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-music" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-music"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-book" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-book"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-shop" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-shop"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-school" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-school"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-building" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-building"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-mosque" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-mosque"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-church" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-church"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-museum" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-museum"></i>
-                    </button>
-                    <button type="button" class="icon-opt" data-icon="fa-monument" onclick="selectIcon(this)">
-                        <i class="fa-solid fa-monument"></i>
-                    </button>
-                    <button type="button" class="icon-opt more-icon-btn" onclick="openIconSearchModal()">
-                        <i class="fa-solid fa-ellipsis"></i>
-                    </button>
-                </div>
-
-                <div style="margin-top: 16px;">
-                    <label class="g-label" style="margin-bottom: 8px;">颜色</label>
-                    <div class="color-row">
-                        <button type="button" class="clr-opt active" data-color="#4285f4" onclick="selectColor(this)" style="background:#4285f4"></button>
-                        <button type="button" class="clr-opt" data-color="#ea4335" onclick="selectColor(this)" style="background:#ea4335"></button>
-                        <button type="button" class="clr-opt" data-color="#34a853" onclick="selectColor(this)" style="background:#34a853"></button>
-                        <button type="button" class="clr-opt" data-color="#fbbc05" onclick="selectColor(this)" style="background:#fbbc05"></button>
-                        <button type="button" class="clr-opt" data-color="#8e44ad" onclick="selectColor(this)" style="background:#8e44ad"></button>
-                        <button type="button" class="clr-opt" data-color="#0e1115" onclick="selectColor(this)" style="background:#0e1115"></button>
-                        <button type="button" class="clr-opt" data-color="#f538a0" onclick="selectColor(this)" style="background:#f538a0"></button>
-                        <button type="button" class="clr-opt" data-color="#16a085" onclick="selectColor(this)" style="background:#16a085"></button>
-                        <div class="color-custom-wrapper">
-                            <input type="color" id="custom-color" value="#4285f4" title="自定义颜色" oninput="selectCustomColor(this.value)" />
-                        </div>
-                    </div>
-                    <div class="rgb-input-row" style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
-                        <div class="rgb-input-group">
-                            <input type="number" id="rgb-r" min="0" max="255" value="66" oninput="updateColorFromRGB()" />
-                            <span>R</span>
-                        </div>
-                        <div class="rgb-input-group">
-                            <input type="number" id="rgb-g" min="0" max="255" value="133" oninput="updateColorFromRGB()" />
-                            <span>G</span>
-                        </div>
-                        <div class="rgb-input-group">
-                            <input type="number" id="rgb-b" min="0" max="255" value="244" oninput="updateColorFromRGB()" />
-                            <span>B</span>
-                        </div>
-                        <span id="hex-display" style="font-size: 12px; color: var(--cmap-muted-foreground); font-family: monospace;">#4285F4</span>
                     </div>
                 </div>
             </div>

@@ -1,8 +1,7 @@
-import { corsHeaders, jsonResponse } from './_shared';
+import { corsHeaders, jsonResponse, incrementTtsCacheVersion } from './_shared';
 
 const MAP_IMAGE_KEY = 'mapImage';
 const MAP_META_KEY = 'mapImageMeta';
-const DEFAULT_IMAGE = '/assets/default-map.webp';
 const ALLOWED_TYPES = ['image/webp', 'image/png', 'image/jpeg'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -15,16 +14,16 @@ export async function onRequestGet(context) {
     if (url.searchParams.has('info')) {
       const meta = await env.MAPAPP.get(MAP_META_KEY, 'json');
       if (!meta) {
-        return jsonResponse({ hasCustom: false, defaultImage: DEFAULT_IMAGE });
+        return jsonResponse({ hasCustom: false, inKV: false });
       }
-      return jsonResponse({ hasCustom: true, meta });
+      return jsonResponse({ hasCustom: true, inKV: true, meta });
     }
 
     const imageData = await env.MAPAPP.get(MAP_IMAGE_KEY, 'arrayBuffer');
     const meta = await env.MAPAPP.get(MAP_META_KEY, 'json');
 
     if (!imageData || !meta) {
-      return Response.redirect(`${url.origin}${DEFAULT_IMAGE}`, 302);
+      return jsonResponse({ error: '底图未设置' }, 404);
     }
 
     return new Response(imageData, {
@@ -36,14 +35,35 @@ export async function onRequestGet(context) {
     });
   } catch (e) {
     console.error('GET /api/map-image error:', e);
-    return Response.redirect(`${url.origin}${DEFAULT_IMAGE}`, 302);
+    return jsonResponse({ error: '服务器错误' }, 500);
   }
 }
 
 export async function onRequestPost(context) {
   const { request, env } = context;
+  const url = new URL(request.url);
 
   try {
+    if (url.searchParams.has('set-default')) {
+      if (!env.ASSETS) {
+        return jsonResponse({ error: 'ASSETS not available' }, 500);
+      }
+      const assetsRes = await env.ASSETS.fetch(new Request('http://localhost/assets/default-map.webp'));
+      if (!assetsRes.ok) {
+        return jsonResponse({ error: '无法读取默认底图' }, 500);
+      }
+      const arrayBuffer = await assetsRes.arrayBuffer();
+      await env.MAPAPP.put(MAP_IMAGE_KEY, arrayBuffer);
+      await env.MAPAPP.put(MAP_META_KEY, JSON.stringify({
+        type: 'image/webp',
+        size: arrayBuffer.byteLength,
+        name: 'default-map.webp',
+        updatedAt: Date.now()
+      }));
+      await incrementTtsCacheVersion(env);
+      return jsonResponse({ success: true, type: 'image/webp', size: arrayBuffer.byteLength });
+    }
+
     const contentType = request.headers.get('Content-Type') || '';
 
     if (!contentType.includes('multipart/form-data')) {
@@ -75,6 +95,8 @@ export async function onRequestPost(context) {
       updatedAt: Date.now()
     }));
 
+    await incrementTtsCacheVersion(env);
+
     return jsonResponse({ success: true, type: file.type, size: file.size });
   } catch (e) {
     console.error('POST /api/map-image error:', e);
@@ -88,6 +110,7 @@ export async function onRequestDelete(context) {
   try {
     await env.MAPAPP.delete(MAP_IMAGE_KEY);
     await env.MAPAPP.delete(MAP_META_KEY);
+    await incrementTtsCacheVersion(env);
     return jsonResponse({ success: true });
   } catch (e) {
     console.error('DELETE /api/map-image error:', e);

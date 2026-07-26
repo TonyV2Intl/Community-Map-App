@@ -1,4 +1,4 @@
-import { getAllLandmarks, saveAllLandmarks, corsHeaders, jsonResponse, geocodeAddress } from './_shared';
+import { getAllLandmarks, saveAllLandmarks, corsHeaders, jsonResponse, geocodeAddress, incrementTtsCacheVersion } from './_shared';
 
 export async function onRequestGet(context) {
   const env = context.env;
@@ -74,6 +74,7 @@ export async function onRequestPost(context) {
 
     landmarks.push(newLandmark);
     await saveAllLandmarks(env, landmarks);
+    await incrementTtsCacheVersion(env);
 
     return jsonResponse(newLandmark, 201);
   } catch (e) {
@@ -132,6 +133,7 @@ export async function onRequestPut(context) {
 
       landmarks[index] = updated;
       await saveAllLandmarks(env, landmarks);
+      await incrementTtsCacheVersion(env);
 
       return jsonResponse(updated);
     }
@@ -189,6 +191,7 @@ export async function onRequestPut(context) {
     }
 
     await saveAllLandmarks(env, validLandmarks);
+    await incrementTtsCacheVersion(env);
 
     return jsonResponse({ success: true, count: validLandmarks.length });
   } catch (e) {
@@ -217,6 +220,7 @@ export async function onRequestDelete(context) {
 
     landmarks.splice(index, 1);
     await saveAllLandmarks(env, landmarks);
+    await incrementTtsCacheVersion(env);
 
     return jsonResponse({ success: true });
   } catch (e) {

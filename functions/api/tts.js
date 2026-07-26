@@ -1,4 +1,4 @@
-import { corsHeaders } from './_shared';
+import { corsHeaders, getTtsCacheVersion, buildTtsCacheKey, TTS_CACHE_TTL } from './_shared';
 
 const MAX_TEXT_LENGTH = 5000;
 
@@ -32,9 +32,30 @@ export async function onRequestPost(context) {
     : text;
 
   const lang = detectLang(truncated);
-  // 优先使用用户选定的音色，否则按语言自动匹配
   const voice = requestedVoice || selectVoice(lang);
 
+  // 1. 读取缓存版本并检查缓存
+  const version = await getTtsCacheVersion(env);
+  const cacheKey = buildTtsCacheKey(version, truncated, voice);
+
+  try {
+    const cached = await env.MAPAPP.get(cacheKey, 'arrayBuffer');
+    if (cached && cached.byteLength > 0) {
+      console.log('[TTS Cache] 命中:', cacheKey);
+      return new Response(cached, {
+        headers: {
+          'Content-Type': 'audio/mpeg',
+          'Content-Length': cached.byteLength.toString(),
+          'Accept-Ranges': 'bytes',
+          ...corsHeaders()
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('[TTS Cache] 读取缓存失败:', e.message);
+  }
+
+  // 2. 缓存未命中，调用 Edge TTS
   const payload = {
     model: 'tts-1',
     input: truncated,
@@ -75,6 +96,14 @@ export async function onRequestPost(context) {
     const audioBuffer = await response.arrayBuffer();
     if (audioBuffer.byteLength === 0) {
       return jsonError('Edge TTS 返回空音频', 502);
+    }
+
+    // 3. 写入缓存
+    try {
+      await env.MAPAPP.put(cacheKey, audioBuffer, { expirationTtl: TTS_CACHE_TTL });
+      console.log('[TTS Cache] 写入:', cacheKey, '大小:', audioBuffer.byteLength, '字节');
+    } catch (e) {
+      console.warn('[TTS Cache] 写入缓存失败:', e.message);
     }
 
     return new Response(audioBuffer, {

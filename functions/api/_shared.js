@@ -1,5 +1,7 @@
 export const LIST_KEY = 'landmarks:list';
 export const CONFIG_KEY = 'config';
+export const TTS_VERSION_KEY = 'tts:version';
+export const TTS_CACHE_TTL = 86400; // 24小时
 export const DEFAULT_REGION = '上海';
 export const DEFAULT_BOUNDARY_BUFFER = 0.1;
 export const DEFAULT_TITLE = '瑞金二路街道便民地图';
@@ -208,4 +210,35 @@ export async function geocodeAddress(env, address) {
     console.error('天地图地理编码异常:', e.message);
     return null;
   }
+}
+
+export async function getTtsCacheVersion(env) {
+  try {
+    const v = await env.MAPAPP.get(TTS_VERSION_KEY);
+    return v ? parseInt(v, 10) || 0 : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+export async function incrementTtsCacheVersion(env) {
+  try {
+    const current = await getTtsCacheVersion(env);
+    const next = current + 1;
+    await env.MAPAPP.put(TTS_VERSION_KEY, String(next));
+    console.log('[TTS Cache] 缓存版本已递增:', current, '→', next);
+    return next;
+  } catch (e) {
+    console.warn('[TTS Cache] 缓存版本递增失败:', e.message);
+    return null;
+  }
+}
+
+export function buildTtsCacheKey(version, text, voice) {
+  const content = `${version}:${text}:${voice}`;
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    hash = ((hash << 5) - hash + content.charCodeAt(i)) | 0;
+  }
+  return `tts:${version}:${Math.abs(hash).toString(36)}`;
 }

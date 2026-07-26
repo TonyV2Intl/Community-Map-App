@@ -388,7 +388,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            z-index: 1000;
+            z-index: 40;
         }
         .map-control-btn {
             width: 44px;
@@ -567,7 +567,7 @@
 
         <div id="map-viewport">
             <div id="map-transform-wrapper">
-                <img src="/api/map-image" id="map-img" alt="地图底图" draggable="false" />
+                <img src="/api/map-image" id="map-img" alt="地图底图" draggable="false" onerror="this.style.display='none'" />
             </div>
             <div id="markers-container"></div>
             <div class="map-controls">

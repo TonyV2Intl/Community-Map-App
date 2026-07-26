@@ -134,27 +134,26 @@
             background: white;
             border-bottom: 1px solid var(--cmap-border);
         }
-        .back-to-map {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--cmap-primary);
-            font-size: 13px;
-            font-weight: 500;
-            text-decoration: none;
-            padding: 8px 12px;
-            margin: 8px 12px 0;
-            border-radius: var(--cmap-radius-sm);
-            transition: background 0.15s;
-            width: fit-content;
-        }
-        .back-to-map:hover {
-            background: rgba(66, 133, 244, 0.08);
-        }
         .header-actions {
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
+            flex: 1;
+            justify-content: flex-end;
+        }
+        @media (max-width: 600px) {
+            .header-actions {
+                gap: 6px;
+                width: 100%;
+            }
+            .action-btn, .add-btn {
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+            .action-btn span, .add-btn span {
+                display: none;
+            }
         }
         .action-btn {
             display: flex;
@@ -499,15 +498,11 @@
                         <span>登出</span>
                     </button>
                     <button type="button" class="add-btn" aria-label="新增地标" onclick="goToEdit()">
-                        <i class="fa-solid fa-plus" style="font-size: 16px; color: white;"></i>
+                        <i class="fa-solid fa-plus" style="font-size: 14px;"></i>
+                        <span>新增</span>
                     </button>
                 </div>
             </header>
-
-            <a href="/" class="back-to-map">
-                <i class="fa-solid fa-map-location-dot" style="font-size: 13px;"></i>
-                返回地图
-            </a>
 
             <div class="search-bar">
                 <div class="search-wrapper">
@@ -708,7 +703,7 @@
                 <input type="file" id="map-upload-input" class="map-upload-input" accept="image/webp,image/png,image/jpeg" onchange="handleMapUpload(this)" />
                 <button type="button" class="map-reset-btn" id="map-reset-btn" onclick="handleMapReset()" disabled>
                     <i class="fa-solid fa-rotate-left"></i>
-                    恢复默认底图
+                    <span id="map-reset-label">恢复默认底图</span>
                 </button>
             </div>
             <div class="kv-modal-footer">
