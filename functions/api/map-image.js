@@ -1,4 +1,4 @@
-import { corsHeaders, jsonResponse, incrementTtsCacheVersion } from './_shared';
+import { corsHeaders, jsonResponse } from './_shared';
 
 const MAP_IMAGE_KEY = 'mapImage';
 const MAP_META_KEY = 'mapImageMeta';
@@ -61,7 +61,6 @@ export async function onRequestPost(context) {
         isCustom: false,
         updatedAt: Date.now()
       }));
-      await incrementTtsCacheVersion(env);
       return jsonResponse({ success: true, type: 'image/webp', size: arrayBuffer.byteLength });
     }
 
@@ -97,8 +96,6 @@ export async function onRequestPost(context) {
       updatedAt: Date.now()
     }));
 
-    await incrementTtsCacheVersion(env);
-
     return jsonResponse({ success: true, type: file.type, size: file.size });
   } catch (e) {
     console.error('POST /api/map-image error:', e);
@@ -112,7 +109,6 @@ export async function onRequestDelete(context) {
   try {
     await env.MAPAPP.delete(MAP_IMAGE_KEY);
     await env.MAPAPP.delete(MAP_META_KEY);
-    await incrementTtsCacheVersion(env);
     return jsonResponse({ success: true });
   } catch (e) {
     console.error('DELETE /api/map-image error:', e);

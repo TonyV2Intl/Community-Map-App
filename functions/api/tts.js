@@ -1,4 +1,4 @@
-import { corsHeaders, getTtsCacheVersion, buildTtsCacheKey, TTS_CACHE_TTL } from './_shared';
+import { corsHeaders, buildTtsCacheKey, TTS_CACHE_TTL } from './_shared';
 
 const MAX_TEXT_LENGTH = 5000;
 
@@ -26,9 +26,8 @@ export async function onRequestPost(context) {
   const lang = detectLang(truncated);
   const voice = requestedVoice || selectVoice(lang);
 
-  // 1. 读取缓存版本并检查缓存
-  const version = await getTtsCacheVersion(env);
-  const cacheKey = buildTtsCacheKey(version, truncated, voice);
+  // 1. 检查缓存（基于文本内容的哈希，无需版本号）
+  const cacheKey = await buildTtsCacheKey(truncated, voice);
 
   try {
     const cached = await env.MAPAPP.get(cacheKey, 'arrayBuffer');

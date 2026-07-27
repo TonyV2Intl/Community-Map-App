@@ -1,4 +1,4 @@
-import { LIST_KEY, CONFIG_KEY, DEFAULT_REGION, DEFAULT_BOUNDARY_BUFFER, corsHeaders, jsonResponse, incrementTtsCacheVersion } from './_shared';
+import { LIST_KEY, CONFIG_KEY, DEFAULT_REGION, DEFAULT_BOUNDARY_BUFFER, corsHeaders, jsonResponse } from './_shared';
 
 export async function onRequestGet(context) {
   const env = context.env;
@@ -34,7 +34,6 @@ export async function onRequestDelete(context) {
     // 清除地标数据和配置
     await env.MAPAPP.delete(LIST_KEY);
     await env.MAPAPP.delete(CONFIG_KEY);
-    await incrementTtsCacheVersion(env);
     
     return jsonResponse({
       success: true,
@@ -74,7 +73,6 @@ export async function onRequestPost(context) {
 
       await env.MAPAPP.put(LIST_KEY, JSON.stringify(landmarks, null, 2));
       await env.MAPAPP.put(CONFIG_KEY, JSON.stringify(config));
-      await incrementTtsCacheVersion(env);
 
       return jsonResponse({
         success: true,
@@ -86,10 +84,8 @@ export async function onRequestPost(context) {
       // 更新地标数据
       if (body.raw === null || body.raw === '') {
         await env.MAPAPP.delete(LIST_KEY);
-        await incrementTtsCacheVersion(env);
       } else {
         await env.MAPAPP.put(LIST_KEY, body.raw);
-        await incrementTtsCacheVersion(env);
       }
     }
     
@@ -97,10 +93,8 @@ export async function onRequestPost(context) {
       // 更新配置数据
       if (body.config === null) {
         await env.MAPAPP.delete(CONFIG_KEY);
-        await incrementTtsCacheVersion(env);
       } else {
         await env.MAPAPP.put(CONFIG_KEY, JSON.stringify(body.config));
-        await incrementTtsCacheVersion(env);
       }
     }
     

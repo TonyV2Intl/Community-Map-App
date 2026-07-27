@@ -4,6 +4,11 @@ let selectedIcon = 'fa-location-dot';
 let selectedColor = '#4285f4';
 let landmarkEnabled = true;
 
+function validateColor(color) {
+    const hexPattern = /^#[0-9a-fA-F]{6}$/;
+    return hexPattern.test(color) ? color : '#4285f4';
+}
+
 const DEFAULT_QUICK_COLORS = [
     '#4285f4', '#ea4335', '#34a853', '#fbbc05',
     '#8e44ad', '#0e1115', '#f538a0', '#16a085'
@@ -484,7 +489,11 @@ function updateIconPreview() {
 
     preview.style.background = selectedColor;
     markerDot.style.background = selectedColor;
-    previewI.className = `fa-solid ${selectedIcon}`;
+    
+    // 检测是否为品牌图标
+    const iconName = selectedIcon.replace(/^fa-/, '');
+    const isBrands = FONT_AWESOME_ICONS.some(x => x.name === iconName && x.prefix === 'brands');
+    previewI.className = (isBrands ? 'fa-brands ' : 'fa-solid ') + selectedIcon;
 }
 
 function previewImage() {

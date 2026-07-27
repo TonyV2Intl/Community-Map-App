@@ -1,6 +1,5 @@
 export const LIST_KEY = 'landmarks:list';
 export const CONFIG_KEY = 'config';
-export const TTS_VERSION_KEY = 'tts:version';
 export const TTS_CACHE_TTL = 86400; // 24小时
 export const DEFAULT_REGION = '上海';
 export const DEFAULT_BOUNDARY_BUFFER = 0.1;
@@ -212,33 +211,46 @@ export async function geocodeAddress(env, address) {
   }
 }
 
-export async function getTtsCacheVersion(env) {
-  try {
-    const v = await env.MAPAPP.get(TTS_VERSION_KEY);
-    return v ? parseInt(v, 10) || 0 : 0;
-  } catch (_) {
-    return 0;
-  }
+export async function buildTtsCacheKey(text, voice) {
+  const content = `${text}:${voice}`;
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  // 使用前16位十六进制作为缓存键，既保证唯一性又不会过长
+  const hashHex = hashArray.slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `tts:${hashHex}`;
 }
 
-export async function incrementTtsCacheVersion(env) {
+export async function deleteTtsCacheByKey(env, cacheKey) {
   try {
-    const current = await getTtsCacheVersion(env);
-    const next = current + 1;
-    await env.MAPAPP.put(TTS_VERSION_KEY, String(next));
-    console.log('[TTS Cache] 缓存版本已递增:', current, '→', next);
-    return next;
+    await env.MAPAPP.delete(cacheKey);
+    console.log('[TTS Cache] 已删除缓存:', cacheKey);
+    return true;
   } catch (e) {
-    console.warn('[TTS Cache] 缓存版本递增失败:', e.message);
-    return null;
+    console.warn('[TTS Cache] 删除缓存失败:', cacheKey, e.message);
+    return false;
   }
 }
 
-export function buildTtsCacheKey(version, text, voice) {
-  const content = `${version}:${text}:${voice}`;
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    hash = ((hash << 5) - hash + content.charCodeAt(i)) | 0;
+export async function listTtsCacheKeys(env) {
+  try {
+    const keys = [];
+    let cursor = undefined;
+    
+    do {
+      const result = await env.MAPAPP.list({ prefix: 'tts:', cursor });
+      for (const key of result.keys) {
+        if (key.name.startsWith('tts:') && !key.name.startsWith('tts:version')) {
+          keys.push(key.name);
+        }
+      }
+      cursor = result.list_complete ? undefined : result.cursor;
+    } while (cursor);
+    
+    return keys;
+  } catch (e) {
+    console.warn('[TTS Cache] 列出缓存键失败:', e.message);
+    return [];
   }
-  return `tts:${version}:${Math.abs(hash).toString(36)}`;
 }

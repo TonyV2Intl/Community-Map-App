@@ -1,4 +1,28 @@
-import { getAllLandmarks, saveAllLandmarks, corsHeaders, jsonResponse, geocodeAddress, incrementTtsCacheVersion } from './_shared';
+import { getAllLandmarks, saveAllLandmarks, corsHeaders, jsonResponse, geocodeAddress, buildTtsCacheKey, deleteTtsCacheByKey } from './_shared';
+
+const MAX_TEXT_LENGTH = 5000;
+
+async function getTtsVoice(env) {
+    try {
+        const config = await env.MAPAPP.get('config');
+        if (config) {
+            return JSON.parse(config).ttsVoice || '';
+        }
+    } catch (e) {
+        // 忽略配置读取错误
+    }
+    return '';
+}
+
+async function clearLandmarkCache(env, landmark) {
+    const text = (landmark.description || landmark.name).trim();
+    if (!text) return;
+    
+    const truncated = text.length > MAX_TEXT_LENGTH ? text.substring(0, MAX_TEXT_LENGTH) : text;
+    const voice = await getTtsVoice(env);
+    const cacheKey = await buildTtsCacheKey(truncated, voice);
+    await deleteTtsCacheByKey(env, cacheKey);
+}
 
 export async function onRequestGet(context) {
   const env = context.env;
@@ -74,7 +98,6 @@ export async function onRequestPost(context) {
 
     landmarks.push(newLandmark);
     await saveAllLandmarks(env, landmarks);
-    await incrementTtsCacheVersion(env);
 
     return jsonResponse(newLandmark, 201);
   } catch (e) {
@@ -109,13 +132,20 @@ export async function onRequestPut(context) {
         }
       }
 
-      const updated = {
-        ...landmarks[index],
-        ...data,
-        lat: data.lat !== undefined && data.lat !== null && data.lat !== '' ? Number(data.lat) : landmarks[index].lat,
-        lng: data.lng !== undefined && data.lng !== null && data.lng !== '' ? Number(data.lng) : landmarks[index].lng,
-        updatedAt: Date.now()
-      };
+      // 字段白名单：只允许更新这些字段
+      const allowedFields = ['name', 'address', 'x', 'y', 'lat', 'lng', 'icon', 'color', 'description', 'imageUrl', 'enabled'];
+      const updated = { ...landmarks[index] };
+      
+      for (const field of allowedFields) {
+        if (data[field] !== undefined) {
+          updated[field] = data[field];
+        }
+      }
+      
+      // 特殊处理经纬度
+      updated.lat = data.lat !== undefined && data.lat !== null && data.lat !== '' ? Number(data.lat) : landmarks[index].lat;
+      updated.lng = data.lng !== undefined && data.lng !== null && data.lng !== '' ? Number(data.lng) : landmarks[index].lng;
+      updated.updatedAt = Date.now();
 
       // 自动地理编码：有地址但无经纬度时，尝试获取
       const addr = updated.address;
@@ -131,9 +161,13 @@ export async function onRequestPut(context) {
         }
       }
 
+      // 如果介绍文字发生变化，清除对应缓存
+      if (updated.description !== landmarks[index].description) {
+          await clearLandmarkCache(env, landmarks[index]);
+      }
+      
       landmarks[index] = updated;
       await saveAllLandmarks(env, landmarks);
-      await incrementTtsCacheVersion(env);
 
       return jsonResponse(updated);
     }
@@ -191,7 +225,6 @@ export async function onRequestPut(context) {
     }
 
     await saveAllLandmarks(env, validLandmarks);
-    await incrementTtsCacheVersion(env);
 
     return jsonResponse({ success: true, count: validLandmarks.length });
   } catch (e) {
@@ -218,9 +251,11 @@ export async function onRequestDelete(context) {
       return jsonResponse({ error: 'Landmark not found' }, 404);
     }
 
+    // 删除地标的同时清除其缓存
+    await clearLandmarkCache(env, landmarks[index]);
+    
     landmarks.splice(index, 1);
     await saveAllLandmarks(env, landmarks);
-    await incrementTtsCacheVersion(env);
 
     return jsonResponse({ success: true });
   } catch (e) {

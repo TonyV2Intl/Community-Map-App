@@ -443,7 +443,7 @@ https://apis.map.qq.com/uri/v1/routeplan?type=walk&to=周公馆
 
 - 需要在环境变量中配置 `TIANDITU_KEY`
 - 手动触发：编辑页中点击"获取坐标"按钮调用 `/api/geocode`
-- 申请地址：<http://lbs.tianditu.gov.cn>
+- 申请地址：<http://lbs.tianditu.gov.cn>，注意应用类型必须选择“服务器端”，否则会报403错误
 
 ## CORS 支持
 

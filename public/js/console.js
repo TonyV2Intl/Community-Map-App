@@ -6,25 +6,20 @@ let filteredLandmarks = [];
 let deleteTargetName = null;
 
 function getIconClass(icon) {
-    const iconMap = {
-        'fa-location-dot': 'fa-location-dot',
-        'fa-hospital': 'fa-hospital',
-        'fa-film': 'fa-film',
-        'fa-hotel': 'fa-hotel',
-        'fa-landmark': 'fa-landmark',
-        'fa-tree': 'fa-tree',
-        'fa-utensils': 'fa-utensils',
-        'fa-music': 'fa-music',
-        'fa-book': 'fa-book',
-        'fa-shop': 'fa-shop',
-        'fa-school': 'fa-school',
-        'fa-building': 'fa-building',
-        'fa-mosque': 'fa-mosque',
-        'fa-church': 'fa-church',
-        'fa-museum': 'fa-museum',
-        'fa-monument': 'fa-monument'
-    };
-    return iconMap[icon] || 'fa-location-dot';
+    if (!icon) return 'fa-location-dot';
+    // 直接返回图标名称，不再限制白名单
+    return icon;
+}
+
+function getIconPrefix(icon) {
+    if (!icon) return 'fa-solid';
+    // 尝试从 FONT_AWESOME_ICONS 中检测品牌图标
+    const iconName = icon.replace(/^fa-/, '');
+    if (typeof FONT_AWESOME_ICONS !== 'undefined' && FONT_AWESOME_ICONS.some(x => x.name === iconName && x.prefix === 'brands')) {
+        return 'fa-brands';
+    }
+    // 默认使用 solid
+    return 'fa-solid';
 }
 
 function renderList() {
@@ -70,6 +65,7 @@ function renderList() {
     
     data.forEach(landmark => {
         const iconClass = getIconClass(landmark.icon);
+        const iconPrefix = getIconPrefix(landmark.icon);
         const color = validateColor(landmark.color);
         const isDisabled = landmark.enabled === false;
         
@@ -82,7 +78,7 @@ function renderList() {
         iconDiv.className = 'landmark-icon';
         iconDiv.style.background = color;
         const icon = document.createElement('i');
-        icon.className = `fa-solid ${iconClass}`;
+        icon.className = `${iconPrefix} ${iconClass}`;
         icon.style.fontSize = '12px';
         icon.style.color = 'white';
         iconDiv.appendChild(icon);
@@ -553,13 +549,14 @@ async function saveConfig() {
 
 function copyKvValue() {
     const body = document.getElementById('kv-modal-body');
-    const pre = body.querySelector('pre');
-    if (!pre) {
+    // 内容直接设置在 body 上，没有 pre 元素
+    const text = body.textContent;
+    if (!text || text.trim() === '') {
         showToast('没有可复制的内容');
         return;
     }
     
-    navigator.clipboard.writeText(pre.textContent).then(() => {
+    navigator.clipboard.writeText(text).then(() => {
         showToast('已复制到剪贴板');
     }).catch(() => {
         showToast('复制失败');
@@ -844,5 +841,270 @@ async function handleMapReset() {
 document.getElementById('map-modal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeMapModal();
+    }
+});
+
+// ==================== TTS 缓存管理 ====================
+
+function openTtsCacheModal() {
+    const modal = document.getElementById('tts-cache-modal');
+    modal.classList.add('show');
+    refreshTtsCacheStatus();
+}
+
+function closeTtsCacheModal() {
+    const modal = document.getElementById('tts-cache-modal');
+    modal.classList.remove('show');
+}
+
+async function refreshTtsCacheStatus() {
+    try {
+        const res = await fetch('/api/tts-cache');
+        const data = await res.json();
+        
+        if (data.success) {
+            updateTtsStats(data);
+            renderTtsCacheList(data.cacheStatus);
+        } else {
+            showToast('获取缓存状态失败: ' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('获取缓存状态失败:', e);
+        showToast('获取缓存状态失败，请检查网络');
+    }
+}
+
+function updateTtsStats(data) {
+    document.getElementById('tts-stat-total').textContent = data.totalLandmarks;
+    document.getElementById('tts-stat-with-text').textContent = data.totalWithText;
+    document.getElementById('tts-stat-cached').textContent = data.cachedCount;
+}
+
+function renderTtsCacheList(cacheStatus) {
+    const listEl = document.getElementById('tts-cache-list');
+    listEl.replaceChildren();
+    
+    if (!cacheStatus || cacheStatus.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-state';
+        emptyDiv.innerHTML = '<i class="fa-regular fa-volume-high" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i><p>暂无缓存数据</p>';
+        listEl.appendChild(emptyDiv);
+        return;
+    }
+    
+    cacheStatus.forEach(item => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+        row.style.padding = '10px 12px';
+        row.style.background = 'var(--color-neutral-50)';
+        row.style.borderRadius = 'var(--cmap-radius-md)';
+        
+        const left = document.createElement('div');
+        left.style.display = 'flex';
+        left.style.alignItems = 'center';
+        left.style.gap = '10px';
+        
+        const statusIcon = document.createElement('i');
+        statusIcon.style.fontSize = '14px';
+        if (!item.hasText) {
+            statusIcon.className = 'fa-solid fa-minus';
+            statusIcon.style.color = 'var(--cmap-muted-foreground)';
+        } else if (item.cached) {
+            statusIcon.className = 'fa-solid fa-check-circle';
+            statusIcon.style.color = '#34a853';
+        } else {
+            statusIcon.className = 'fa-solid fa-circle';
+            statusIcon.style.color = '#fbbc05';
+        }
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.style.fontSize = '13px';
+        nameSpan.style.fontWeight = '500';
+        nameSpan.style.color = 'var(--cmap-foreground)';
+        nameSpan.textContent = item.name;
+        
+        const infoSpan = document.createElement('span');
+        infoSpan.style.fontSize = '11px';
+        infoSpan.style.color = 'var(--cmap-muted-foreground)';
+        if (!item.hasText) {
+            infoSpan.textContent = '无文本';
+        } else {
+            infoSpan.textContent = `文本长度: ${item.textLength}`;
+        }
+        
+        left.appendChild(statusIcon);
+        left.appendChild(nameSpan);
+        left.appendChild(infoSpan);
+        
+        const right = document.createElement('div');
+        right.style.display = 'flex';
+        right.style.gap = '6px';
+        
+        if (item.hasText) {
+            const buildBtn = document.createElement('button');
+            buildBtn.className = 'action-btn';
+            buildBtn.style.padding = '4px 8px';
+            buildBtn.style.fontSize = '12px';
+            buildBtn.style.background = item.cached ? 'var(--cmap-muted)' : 'var(--cmap-primary)';
+            buildBtn.style.color = item.cached ? 'var(--cmap-foreground)' : 'white';
+            buildBtn.innerHTML = `<i class="fa-solid ${item.cached ? 'fa-refresh' : 'fa-download'}" style="font-size: 12px;"></i><span>${item.cached ? '重建' : '构建'}</span>`;
+            buildBtn.onclick = () => buildSingleTtsCache(item.name);
+            
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'action-btn';
+            clearBtn.style.padding = '4px 8px';
+            clearBtn.style.fontSize = '12px';
+            clearBtn.style.background = '#fef2f2';
+            clearBtn.style.color = '#dc2626';
+            clearBtn.innerHTML = '<i class="fa-solid fa-trash" style="font-size: 12px;"></i><span>清除</span>';
+            clearBtn.onclick = () => clearSingleTtsCache(item.name);
+            
+            right.appendChild(buildBtn);
+            right.appendChild(clearBtn);
+        }
+        
+        row.appendChild(left);
+        row.appendChild(right);
+        listEl.appendChild(row);
+    });
+}
+
+async function buildAllTtsCache() {
+    if (!confirm('确定要构建所有地标的 TTS 缓存吗？这会调用 Edge TTS 服务生成音频。')) {
+        return;
+    }
+    
+    let totalSuccess = 0;
+    let totalError = 0;
+    let remaining = -1;
+    
+    const buildNextBatch = async () => {
+        try {
+            const res = await fetch('/api/tts-cache', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                totalSuccess += data.successCount || 0;
+                totalError += data.errorCount || 0;
+                
+                if (data.message) {
+                    showToast(data.message);
+                }
+                
+                remaining = data.remaining || 0;
+                if (remaining > 0) {
+                    // 继续处理下一批
+                    setTimeout(buildNextBatch, 1000);
+                } else {
+                    // 全部完成
+                    showToast(`构建完成：成功 ${totalSuccess} 个，失败 ${totalError} 个`);
+                    refreshTtsCacheStatus();
+                }
+            } else {
+                showToast('构建失败: ' + (data.error || '未知错误'));
+                if (totalSuccess > 0 || totalError > 0) {
+                    showToast(`已完成部分：成功 ${totalSuccess} 个，失败 ${totalError} 个`);
+                }
+                refreshTtsCacheStatus();
+            }
+        } catch (e) {
+            console.error('构建缓存失败:', e);
+            showToast('构建失败，请检查网络');
+            if (totalSuccess > 0 || totalError > 0) {
+                showToast(`已完成部分：成功 ${totalSuccess} 个，失败 ${totalError} 个`);
+            }
+            refreshTtsCacheStatus();
+        }
+    };
+    
+    await buildNextBatch();
+}
+
+async function clearAllTtsCache() {
+    if (!confirm('确定要清除所有 TTS 缓存吗？')) {
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/tts-cache', {
+            method: 'DELETE'
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showToast(`已清除 ${data.deleted} 个缓存`);
+            refreshTtsCacheStatus();
+        } else {
+            showToast('清除失败: ' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('清除缓存失败:', e);
+        showToast('清除失败，请检查网络');
+    }
+}
+
+async function buildSingleTtsCache(name) {
+    try {
+        const res = await fetch('/api/tts-cache', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, rebuild: true })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            const result = data.results?.[0];
+            if (result) {
+                showToast(`${name}: ${result.message}`);
+            } else {
+                showToast(`缓存构建成功`);
+            }
+            refreshTtsCacheStatus();
+        } else {
+            showToast('构建失败: ' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('构建缓存失败:', e);
+        showToast('构建失败，请检查网络');
+    }
+}
+
+async function clearSingleTtsCache(name) {
+    if (!confirm(`确定要清除 "${name}" 的 TTS 缓存吗？`)) {
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/api/tts-cache?name=${encodeURIComponent(name)}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showToast(data.message);
+            refreshTtsCacheStatus();
+        } else {
+            showToast('清除失败: ' + (data.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error('清除缓存失败:', e);
+        showToast('清除失败，请检查网络');
+    }
+}
+
+// 点击遮罩关闭 TTS 缓存模态框
+document.getElementById('tts-cache-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTtsCacheModal();
     }
 });

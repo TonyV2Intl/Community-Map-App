@@ -280,25 +280,20 @@ viewport.addEventListener('wheel', function(e) {
 }, { passive: false });
 
 function getIconClass(icon) {
-    const iconMap = {
-        'fa-location-dot': 'fa-location-dot',
-        'fa-hospital': 'fa-hospital',
-        'fa-film': 'fa-film',
-        'fa-hotel': 'fa-hotel',
-        'fa-landmark': 'fa-landmark',
-        'fa-tree': 'fa-tree',
-        'fa-utensils': 'fa-utensils',
-        'fa-music': 'fa-music',
-        'fa-book': 'fa-book',
-        'fa-shop': 'fa-shop',
-        'fa-school': 'fa-school',
-        'fa-building': 'fa-building',
-        'fa-mosque': 'fa-mosque',
-        'fa-church': 'fa-church',
-        'fa-museum': 'fa-museum',
-        'fa-monument': 'fa-monument'
-    };
-    return iconMap[icon] || 'fa-location-dot';
+    if (!icon) return 'fa-location-dot';
+    // 直接返回图标名称，不再限制白名单
+    return icon;
+}
+
+function getIconPrefix(icon) {
+    if (!icon) return 'fa-solid';
+    // 尝试从 FONT_AWESOME_ICONS 中检测品牌图标
+    const iconName = icon.replace(/^fa-/, '');
+    if (typeof FONT_AWESOME_ICONS !== 'undefined' && FONT_AWESOME_ICONS.some(x => x.name === iconName && x.prefix === 'brands')) {
+        return 'fa-brands';
+    }
+    // 默认使用 solid
+    return 'fa-solid';
 }
 
 function renderMarkers() {
@@ -313,6 +308,7 @@ function renderMarkers() {
         marker.setAttribute('data-name', escapeHtml(landmark.name));
 
         const iconClass = getIconClass(landmark.icon);
+        const iconPrefix = getIconPrefix(landmark.icon);
         const color = validateColor(landmark.color);
 
         // 创建marker内容
@@ -322,7 +318,7 @@ function renderMarkers() {
         markerIconInner.className = 'marker-icon-inner';
         markerIconInner.style.background = color;
         const icon = document.createElement('i');
-        icon.className = `fa-solid ${iconClass}`;
+        icon.className = `${iconPrefix} ${iconClass}`;
         icon.style.fontSize = '16px';
         markerIconInner.appendChild(icon);
         markerIcon.appendChild(markerIconInner);
@@ -697,7 +693,7 @@ async function toggleSpeak() {
         }
         try {
             await preloadVoices();
-            await speakNative(text);
+            await speakNative(text, voice);
         } catch (e) {
             console.error('浏览器 TTS 失败:', e);
             showToast('浏览器朗读失败');
@@ -737,7 +733,7 @@ async function toggleSpeak() {
     if (!isWeChat && nativeAvailable) {
         try {
             await preloadVoices();
-            await speakNative(text);
+            await speakNative(text, voice);
             return;
         } catch (e) {
             console.error('浏览器 TTS 也失败:', e);
@@ -747,7 +743,7 @@ async function toggleSpeak() {
     showToast('语音朗读暂不可用');
 }
 
-function speakNative(text) {
+function speakNative(text, voice) {
     return new Promise((resolve, reject) => {
         const synth = window.speechSynthesis;
         const utterance = new SpeechSynthesisUtterance(text);
@@ -755,9 +751,17 @@ function speakNative(text) {
         utterance.rate = 0.9;
 
         const voices = synth.getVoices();
-        const zhVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
-        if (zhVoice) {
-            utterance.voice = zhVoice;
+        // 优先使用用户配置的语音
+        let selectedVoice = null;
+        if (voice) {
+            selectedVoice = voices.find(v => v.name === voice || v.voiceURI === voice);
+        }
+        // 如果未找到，尝试按语言匹配
+        if (!selectedVoice) {
+            selectedVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
+        }
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
         }
 
         utterance.onstart = function() {
@@ -967,6 +971,7 @@ function renderMenuItems(filterText = '') {
     container.replaceChildren();
     enabledLandmarks.forEach(landmark => {
         const iconClass = getIconClass(landmark.icon);
+        const iconPrefix = getIconPrefix(landmark.icon);
         const color = validateColor(landmark.color);
         
         const item = document.createElement('div');
@@ -980,7 +985,7 @@ function renderMenuItems(filterText = '') {
         itemIcon.className = 'menu-item-icon';
         itemIcon.style.background = color;
         const icon = document.createElement('i');
-        icon.className = `fa-solid ${iconClass}`;
+        icon.className = `${iconPrefix} ${iconClass}`;
         icon.style.fontSize = '14px';
         itemIcon.appendChild(icon);
         item.appendChild(itemIcon);

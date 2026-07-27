@@ -501,6 +501,10 @@
                         <i class="fa-solid fa-gear" style="font-size: 14px;"></i>
                         <span>配置</span>
                     </button>
+                    <button type="button" class="action-btn" aria-label="TTS缓存管理" onclick="openTtsCacheModal()">
+                        <i class="fa-solid fa-volume-high" style="font-size: 14px;"></i>
+                        <span>TTS缓存</span>
+                    </button>
                     <button type="button" class="action-btn" aria-label="登出" onclick="handleLogout()" style="background: rgba(234, 67, 53, 0.1); color: #ea4335;">
                         <i class="fa-solid fa-right-from-bracket" style="font-size: 14px;"></i>
                         <span>登出</span>
@@ -716,6 +720,61 @@
             </div>
             <div class="kv-modal-footer">
                 <button class="kv-close-btn" onclick="closeMapModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="kv-modal" id="tts-cache-modal">
+        <div class="kv-modal-box">
+            <div class="kv-modal-header">
+                <h3>TTS 缓存管理</h3>
+                <button class="kv-modal-close" onclick="closeTtsCacheModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="config-form" style="gap: 16px; padding-left: 15px; padding-right: 15px;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                    <div class="stat-card" style="margin: 0;">
+                        <div class="stat-num" id="tts-stat-total" style="font-size: 20px;">0</div>
+                        <div class="stat-label" style="font-size: 11px;">地标总数</div>
+                    </div>
+                    <div class="stat-card" style="margin: 0;">
+                        <div class="stat-num" id="tts-stat-with-text" style="font-size: 20px; color: #34a853;">0</div>
+                        <div class="stat-label" style="font-size: 11px;">有文本</div>
+                    </div>
+                    <div class="stat-card" style="margin: 0;">
+                        <div class="stat-num" id="tts-stat-cached" style="font-size: 20px; color: #4285f4;">0</div>
+                        <div class="stat-label" style="font-size: 11px;">已缓存</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="action-btn" onclick="buildAllTtsCache()" style="flex: 1; min-width: 120px; background: var(--cmap-primary); color: white;">
+                        <i class="fa-solid fa-download"></i>
+                        <span>构建全部缓存</span>
+                    </button>
+                    <button class="action-btn" onclick="clearAllTtsCache()" style="flex: 1; min-width: 120px; background: #fef2f2; color: #dc2626;">
+                        <i class="fa-solid fa-trash"></i>
+                        <span>清除全部缓存</span>
+                    </button>
+                    <button class="action-btn" onclick="refreshTtsCacheStatus()" style="flex: 1; min-width: 120px;">
+                        <i class="fa-solid fa-refresh"></i>
+                        <span>刷新状态</span>
+                    </button>
+                </div>
+
+                <div style="border-top: 1px solid var(--cmap-border); padding-top: 12px;">
+                    <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 12px;">缓存状态列表</h4>
+                    <div id="tts-cache-list" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                        <div class="loading-state" style="padding: 20px; text-align: center;">
+                            <i class="fa-solid fa-spinner fa-spin"></i>
+                            <p style="margin-top: 8px;">加载中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="kv-modal-footer">
+                <button class="kv-close-btn" onclick="closeTtsCacheModal()">关闭</button>
             </div>
         </div>
     </div>
