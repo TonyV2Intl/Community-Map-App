@@ -660,12 +660,17 @@ async function loadMapInfo() {
         const data = await res.json();
 
         if (data.hasCustom && data.meta) {
-            // 有自定义底图（在 KV 中）
+            const isCustom = data.meta.isCustom !== false;
             statusEl.replaceChildren();
-            const customTag = document.createElement('span');
-            customTag.className = 'map-status-tag custom';
-            customTag.textContent = '自定义';
-            statusEl.appendChild(customTag);
+            const tag = document.createElement('span');
+            if (isCustom) {
+                tag.className = 'map-status-tag custom';
+                tag.textContent = '自定义';
+            } else {
+                tag.className = 'map-status-tag default';
+                tag.textContent = '默认';
+            }
+            statusEl.appendChild(tag);
 
             typeEl.textContent = data.meta.type || '-';
             sizeEl.textContent = formatFileSize(data.meta.size);

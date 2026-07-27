@@ -58,6 +58,7 @@ export async function onRequestPost(context) {
         type: 'image/webp',
         size: arrayBuffer.byteLength,
         name: 'default-map.webp',
+        isCustom: false,
         updatedAt: Date.now()
       }));
       await incrementTtsCacheVersion(env);
@@ -92,6 +93,7 @@ export async function onRequestPost(context) {
       type: file.type,
       size: file.size,
       name: file.name,
+      isCustom: true,
       updatedAt: Date.now()
     }));
 
